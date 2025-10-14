@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   selector: 'app-editor',
   imports: [CommonModule],
-  template: `<div class="border rounded p-4">Docs editor placeholder (collab-ready slot)</div>`
+  templateUrl: './editor.component.html'
 })
 export class EditorPageComponent {}
 

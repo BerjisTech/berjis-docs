@@ -1,0 +1,32 @@
+<div class="min-h-[60vh]">
+  <!-- Logged out landing -->
+  <div *ngIf="authed === false" class="mx-auto max-w-3xl text-center py-16">
+    <h2 class="text-3xl font-semibold mb-3">Create beautiful documents</h2>
+    <p class="text-gray-600 mb-6">Berjis Docs helps your team write, review, and publish fast.</p>
+    <div class="flex items-center justify-center gap-3">
+      <a class="px-4 py-2 rounded bg-blue-600 text-white" href="http://berjis.test">Get Started</a>
+      <a class="px-4 py-2 rounded border" routerLink="/editor/demo">Try Demo</a>
+    </div>
+  </div>
+
+  <!-- Logged in recents -->
+  <div *ngIf="authed === true" class="max-w-4xl mx-auto py-8">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xl font-semibold">Recent Documents</h3>
+      <a routerLink="/editor/new" class="text-sm px-3 py-1.5 rounded bg-blue-600 text-white">New Document</a>
+    </div>
+    <ul class="divide-y border rounded">
+      <li *ngFor="let d of recents" class="p-3 flex items-center justify-between">
+        <div>
+          <div class="font-medium">{{ d.title }}</div>
+          <div class="text-xs text-gray-500">Updated {{ d.updatedAt | date:'medium' }}</div>
+        </div>
+        <a [routerLink]="['/editor', d.id]" class="text-blue-600 text-sm">Open</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="authed === null" class="py-16 text-center text-gray-500">Checking your session.</div>
+</div>
+
