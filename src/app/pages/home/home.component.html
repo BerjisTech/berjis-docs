@@ -31,13 +31,13 @@
         </div>
       </div>
     </div>
-    <div class="flex gap-3 items-center justify-center">
-      <a routerLink="/editor/new">
-        <div class="shadow w-[200px] h-[300px] rounded bg-slate-50"></div>
+    <div class="grid grid-cols-5 auto-rows-[300px] gap-3">
+      <a routerLink="/editor/new" class="flex flex-col">
+        <div class="flex-grow shadow rounded bg-slate-50"></div>
         <div>Blank document</div>
       </a>
-      <a *ngFor="let template of [0,1,2,3]">
-        <div class="shadow w-[200px] h-[300px] rounded bg-slate-50"></div>
+      <a *ngFor="let template of [0,1,2,3]" class="flex flex-col">
+        <div class="flex-grow shadow rounded bg-slate-50"></div>
         <div>Blank document</div>
       </a>
     </div>
@@ -66,14 +66,14 @@
         <div>File picker</div>
       </div>
     </div>
-    <div class="w-full flex items-start justify-start flex-wrap gap-3">
-      <div *ngFor="let d of recents"
-        class="shadow w-[200px] h-[300px] rounded bg-slate-50 flex flex-col p-2 cursor-pointer hover:shadow-xl">
+    <div class="w-full grid grid-cols-5 auto-rows-[300px] gap-3">
+      <a [routerLink]="['/editor', d.id]" *ngFor="let d of recents"
+        class="shadow rounded bg-slate-50 flex flex-col p-2 cursor-pointer hover:shadow-xl">
         <div class="font-medium">{{ d.title }}</div>
         <div class="flex-grow"></div>
         <div class="text-xs text-gray-500">Updated {{ d.updatedAt | date:'medium' }}</div>
         <a [routerLink]="['/editor', d.id]" class="text-blue-600 text-sm">Open</a>
-      </div>
+      </a>
     </div>
   </div>
 
