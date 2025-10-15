@@ -1,2 +1,52 @@
-<div class="border rounded p-4">Docs editor placeholder (collab-ready slot)</div>
+<div class="w-full max-w-5xl mx-auto py-4">
+  <div class="flex items-center justify-between gap-3 mb-3">
+    <input class="flex-1 text-2xl font-semibold outline-none bg-transparent border-b border-gray-200 focus:border-gray-400 py-1"
+      placeholder="Untitled document" [(ngModel)]="doc!.title" (ngModelChange)="onTitleChange()" />
+    <div class="flex items-center gap-2 text-xs text-gray-500">
+      <span *ngIf="docs.isSaving">Saving…</span>
+      <span *ngIf="!docs.isSaving && docs.lastSavedAt">Saved {{ docs.lastSavedAt | date:'shortTime' }}</span>
+    </div>
+  </div>
 
+  <div class="flex flex-wrap items-center gap-1 p-2 border rounded bg-white sticky top-0 z-10">
+    <button class="px-2 py-1 border rounded" title="Undo" (click)="exec('undo')">↶</button>
+    <button class="px-2 py-1 border rounded" title="Redo" (click)="exec('redo')">↷</button>
+    <span class="mx-1">|</span>
+    <select class="px-2 py-1 border rounded" title="Font" (change)="exec('fontName', $any($event.target).value)">
+      <option value="">Font</option>
+      <option>Arial</option>
+      <option>Georgia</option>
+      <option>Times New Roman</option>
+      <option>Courier New</option>
+      <option>Verdana</option>
+    </select>
+    <select class="px-2 py-1 border rounded" title="Size" (change)="exec('fontSize', $any($event.target).value)">
+      <option value="">Size</option>
+      <option value="2">Small</option>
+      <option value="3">Normal</option>
+      <option value="4">Large</option>
+      <option value="5">X-Large</option>
+    </select>
+    <span class="mx-1">|</span>
+    <button class="px-2 py-1 border rounded font-bold" title="Bold" (click)="exec('bold')">B</button>
+    <button class="px-2 py-1 border rounded italic" title="Italic" (click)="exec('italic')">I</button>
+    <button class="px-2 py-1 border rounded underline" title="Underline" (click)="exec('underline')">U</button>
+    <button class="px-2 py-1 border rounded line-through" title="Strikethrough" (click)="exec('strikeThrough')">S</button>
+    <span class="mx-1">|</span>
+    <button class="px-2 py-1 border rounded" title="Left" (click)="exec('justifyLeft')">⟸</button>
+    <button class="px-2 py-1 border rounded" title="Center" (click)="exec('justifyCenter')">≡</button>
+    <button class="px-2 py-1 border rounded" title="Right" (click)="exec('justifyRight')">⟹</button>
+    <button class="px-2 py-1 border rounded" title="Justify" (click)="exec('justifyFull')">⇔</button>
+    <span class="mx-1">|</span>
+    <button class="px-2 py-1 border rounded" title="Indent" (click)="exec('indent')">⇥</button>
+    <button class="px-2 py-1 border rounded" title="Outdent" (click)="exec('outdent')">⇤</button>
+    <button class="px-2 py-1 border rounded" title="Numbered list" (click)="exec('insertOrderedList')">1.</button>
+    <button class="px-2 py-1 border rounded" title="Bulleted list" (click)="exec('insertUnorderedList')">•</button>
+    <button class="px-2 py-1 border rounded" title="Quote" (click)="applyBlock('blockquote')">❝❞</button>
+    <button class="px-2 py-1 border rounded" title="Link" (click)="insertLink()">🔗</button>
+    <button class="px-2 py-1 border rounded" title="Unlink" (click)="unlink()">⨂</button>
+    <button class="px-2 py-1 border rounded" title="Reset formatting" (click)="resetFormatting()">⌫Fmt</button>
+  </div>
+
+  <div #editor class="min-h-[600px] p-8 mt-2 border rounded bg-white outline-none" contenteditable="true" (input)="onEditorInput()" spellcheck="true"></div>
+</div>

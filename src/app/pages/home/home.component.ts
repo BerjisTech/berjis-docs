@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../api.service';
+import { DocsService, Doc } from '../../docs.service';
 
 @Component({
   standalone: true,
@@ -11,19 +12,13 @@ import { ApiService } from '../../api.service';
 })
 export class HomePageComponent {
   authed: boolean | null = null;
-  recents: Array<{ id: string; title: string; updatedAt: string }> = [];
-  constructor(private api: ApiService) { this.init(); }
+  recents: Doc[] = [];
+  constructor(private api: ApiService, private docs: DocsService) { this.init(); }
   async init() {
     try {
       const res = await this.api.ensureAuth();
       this.authed = !!res?.data?.valid;
-      if (this.authed) {
-        this.recents = [
-          { id: 'welcome', title: 'Welcome to Berjis Docs', updatedAt: new Date().toISOString() },
-          { id: 'spec', title: 'Product spec - Q4', updatedAt: new Date(Date.now() - 3600e3).toISOString() }
-        ];
-      }
+      if (this.authed) { this.recents = await this.docs.list(['active']); }
     } catch { this.authed = false; }
   }
 }
-
