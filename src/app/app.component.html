@@ -5,9 +5,12 @@
       <a routerLink="/" routerLinkActive="font-semibold">Home</a>
       <a routerLink="/editor/123" routerLinkActive="font-semibold">Editor (demo)</a>
     </nav>
-    <div class="mt-2 text-xs text-gray-600">
-      <span class="inline-block h-2 w-2 rounded-full bg-green-500"></span>
-      <span>Docs</span>
+    <div class="mt-2 text-xs flex items-center gap-2">
+      <span class="inline-block h-2 w-2 rounded-full" [class.bg-green-500]="syncMode==='remote'" [class.bg-yellow-500]="syncMode==='local'"></span>
+      <span>Sync: {{ syncMode === 'remote' ? 'Server' : 'Local' }}</span>
+      <span *ngIf="isSaving" class="text-gray-500">• Saving…</span>
+      <span *ngIf="!isSaving && lastSavedAt" class="text-gray-500">• Saved {{ lastSavedAt | date:'shortTime' }}</span>
+      <span *ngIf="lastError" class="text-red-600">• {{ lastError }}</span>
     </div>
   </header>
   <router-outlet></router-outlet>

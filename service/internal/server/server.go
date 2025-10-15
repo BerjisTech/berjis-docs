@@ -8,7 +8,6 @@ import (
     "time"
 
     "github.com/gofiber/fiber/v2"
-    "github.com/gofiber/fiber/v2/middleware/cors"
     "github.com/jmoiron/sqlx"
 )
 
@@ -26,7 +25,21 @@ type Document struct {
 
 func New(opts Options) *fiber.App {
     app := fiber.New()
-    app.Use(cors.New(cors.Config{ AllowOrigins: opts.AllowedOrigins, AllowMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS", AllowHeaders: "Authorization,Content-Type,Accept", AllowCredentials: true }))
+    // Reflect CORS origin for berjis.test domains with credentials
+    app.Use(func(c *fiber.Ctx) error {
+        origin := c.Get("Origin")
+        if origin != "" {
+            if origin == "http://berjis.test" || strings.HasSuffix(origin, ".berjis.test") {
+                c.Set("Access-Control-Allow-Origin", origin)
+                c.Set("Vary", "Origin")
+                c.Set("Access-Control-Allow-Credentials", "true")
+                c.Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+                c.Set("Access-Control-Allow-Headers", "Authorization,Content-Type,Accept")
+                if c.Method() == fiber.MethodOptions { return c.SendStatus(fiber.StatusNoContent) }
+            }
+        }
+        return c.Next()
+    })
 
     app.Get("/v1/health", func(c *fiber.Ctx) error { return c.JSON(fiber.Map{"success": true}) })
 
