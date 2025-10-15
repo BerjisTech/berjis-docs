@@ -11,6 +11,10 @@ import { DocsService, Doc } from '../../docs.service';
   templateUrl: './home.component.html'
 })
 export class HomePageComponent {
+  get syncMode() { return this.docs.syncMode; }
+  get isSaving() { return this.docs.isSaving; }
+  get lastSavedAt() { return this.docs.lastSavedAt; }
+  get lastError() { return this.docs.lastError; }
   authed: boolean | null = null;
   recents: Doc[] = [];
   constructor(private api: ApiService, private docs: DocsService) { this.init(); }

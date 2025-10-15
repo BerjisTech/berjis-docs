@@ -14,8 +14,63 @@ export class EditorPageComponent implements OnInit {
   @ViewChild('editor', { static: true }) editorRef!: ElementRef<HTMLDivElement>;
   doc: Doc | null = null;
   pendingSave?: any;
+  contextMenus: { name: string, menus: { icon: string, name: string, action: string }[] }[] = [
+    {
+      name: 'File',
+      menus: [
+        { icon: '', name: 'New', action: '' },
+        { icon: '', name: 'Open', action: '' },
+        { icon: '', name: 'Duplicate', action: '' },
+        { icon: '', name: 'Share', action: '' },
+        { icon: '', name: 'Email', action: '' },
+        { icon: '', name: 'Export', action: '' }
+      ]
+    },
+    {
+      name: 'Edit',
+      menus: [
+        { icon: '', name: '', action: '' }
+      ]
+    },
+    {
+      name: 'View',
+      menus: [
+        { icon: '', name: '', action: '' }
+      ]
+    },
+    {
+      name: 'Insert',
+      menus: [
+        { icon: '', name: '', action: '' }
+      ]
+    },
+    {
+      name: 'Format',
+      menus: [
+        { icon: '', name: '', action: '' }
+      ]
+    },
+    {
+      name: 'Tools',
+      menus: [
+        { icon: '', name: '', action: '' }
+      ]
+    },
+    {
+      name: 'Extensions',
+      menus: [
+        { icon: '', name: '', action: '' }
+      ]
+    },
+    {
+      name: 'Help',
+      menus: [
+        { icon: '', name: '', action: '' }
+      ]
+    },
+  ]
 
-  constructor(private route: ActivatedRoute, public docs: DocsService, private router: Router) {}
+  constructor(private route: ActivatedRoute, public docs: DocsService, private router: Router) { }
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id') || 'new';
