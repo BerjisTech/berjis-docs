@@ -1,4 +1,4 @@
-<div class="w-full h-[145px] overflow-hidden ps-[30px] p-3">
+<div class="w-full h-[145px] overflow-visible ps-[30px] p-3 relative z-20">
   <div class="h-[70px] flex items-center justify-start gap-3">
     <a href="/" class="h-full w-[70px] bg-blue-400 rounded flex items-center justify-center">Icon</a>
     <div class="flex-grow">
@@ -22,8 +22,9 @@
           class="group hover:bg-slate-200 px-3 rounded hover:shadow cursor-pointer relative">
           {{contextMenu.name}}
           <div
-            class="hidden group-hover:block absolute top-[100%] left-0 rounded shadow bg-white z-[50000] overflow-hidden">
-            <div *ngFor="let menu of contextMenu.menus" class="p-2 hover:bg-slate-200 cursor-pointer">{{menu.name}}
+            class="hidden group-hover:block absolute top-[100%] left-0 rounded shadow bg-white z-[50000] overflow-visible">
+            <div *ngFor="let menu of contextMenu.menus" class="p-2 hover:bg-slate-200 cursor-pointer"
+              (click)="onMenu(menu.action); $event.stopPropagation();">{{menu.name}}
             </div>
           </div>
         </span>
@@ -82,16 +83,79 @@
 </div>
 
 <div #editorMainPane class="h-[calc(100vh-155px)] mt-2 overflow-hidden z-[1]">
-  <div #horizontalScale class="h-[30px] ms-[30px] border-b border-slate-400 flex items-baseline justify-center">H</div>
+  <div *ngIf="showRuler" #horizontalScale class="h-[30px] ms-[30px] border-b border-slate-400 flex items-center justify-center">
+    <div class="relative" [style.width]="'210mm'" [style.height]="'30px'">
+      <div class="absolute left-0 top-0 right-0 h-full flex">
+        <div *ngFor="let t of hTicks; let i = index" [style.width]="'10mm'" class="relative">
+          <div class="absolute bottom-0 left-0 w-px bg-slate-500" [style.height]="(i % 5 === 0) ? '100%' : '50%'"></div>
+          <div *ngIf="i % 5 === 0" class="absolute bottom-0 left-1 text-[10px] text-slate-600">{{ i }}mm</div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="h-[calc(100vh-186px)] w-full overflow-hidden flex items-start justify-start">
-    <div #verticalScale class="w-[30px] border-r h-full border-slate-400">V</div>
+    <div *ngIf="showRuler" #verticalScale class="w-[30px] border-r h-full border-slate-400 relative">
+      <div class="absolute top-0 left-0 right-0">
+        <div *ngFor="let t of vTicks; let i = index" [style.height]="'10mm'" class="relative">
+          <div class="absolute left-0 top-0 h-px bg-slate-500" [style.width]="(i % 5 === 0) ? '100%' : '50%'"></div>
+          <div *ngIf="i % 5 === 0" class="absolute left-0 top-0 -translate-y-1 text-[10px] text-slate-600">{{ i }}mm</div>
+        </div>
+      </div>
+    </div>
     <div class="h-full w-[calc(100%-30px)] bg-blue-100 flex items-center justify-center">
       <div class="w-[300px] h-full"></div>
-      <div #pages class="_w-[calc(100%-600px)] overflow-x-hidden overflow-y-auto _flex-grow h-full p-8 ">
+      <div #pages class="_w-[calc(100%-600px)] overflow-x-hidden overflow-y-auto _flex-grow h-full p-8 "
+        [style.transform]="scale !== 1 ? 'scale(' + scale + ')' : ''" [style.transformOrigin]="'top left'">
         <div #editor class="bg-white outline-none w-[210mm] h-[297mm] p-8 overflow-hidden"
           contenteditable="true" (input)="onEditorInput()" spellcheck="true"></div>
       </div>
       <div class="w-[300px] h-full"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Open Modal -->
+<div *ngIf="openModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+  <div class="bg-white rounded shadow w-[900px] max-w-[90vw] p-5">
+    <div class="flex items-center justify-between mb-3">
+      <div class="text-lg font-semibold">Open Document</div>
+      <button class="px-2 py-1 border rounded" (click)="cancelOpen()">Close</button>
+    </div>
+    <input class="w-full border rounded px-3 py-2 mb-4" [(ngModel)]="openQuery" (ngModelChange)="onOpenQueryChange()"
+      placeholder="Search by title or content" />
+    <div class="grid grid-cols-5 auto-rows-[220px] gap-3">
+      <a (click)="openDoc(d)" *ngFor="let d of openFiltered" class="shadow rounded bg-slate-50 flex flex-col p-2 cursor-pointer hover:shadow-xl">
+        <div class="font-medium truncate">{{ d.title || 'Untitled' }}</div>
+        <div class="text-xs text-gray-500 mt-1">{{ d.updatedAt | date:'medium' }}</div>
+        <div class="flex-grow"></div>
+        <div class="text-blue-600 text-sm">Open</div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Insert Link Modal -->
+<div *ngIf="linkModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+  <div class="bg-white rounded shadow w-[520px] p-4">
+    <div class="text-lg font-semibold mb-2">Insert Link</div>
+    <label class="text-sm text-gray-600">URL</label>
+    <input class="w-full border rounded px-2 py-1 mt-1" [(ngModel)]="linkUrl" placeholder="https://" />
+    <div class="flex items-center justify-end gap-2 mt-3">
+      <button class="px-3 py-1 border rounded" (click)="cancelLink()">Cancel</button>
+      <button class="px-3 py-1 bg-blue-600 text-white rounded" (click)="confirmLink()">Insert</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename Modal -->
+<div *ngIf="renameModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+  <div class="bg-white rounded shadow w-[520px] p-4">
+    <div class="text-lg font-semibold mb-2">Rename Document</div>
+    <label class="text-sm text-gray-600">Title</label>
+    <input class="w-full border rounded px-2 py-1 mt-1" [(ngModel)]="renameTitle" placeholder="Untitled document" />
+    <div class="flex items-center justify-end gap-2 mt-3">
+      <button class="px-3 py-1 border rounded" (click)="cancelRename()">Cancel</button>
+      <button class="px-3 py-1 bg-blue-600 text-white rounded" (click)="confirmRename()">Save</button>
     </div>
   </div>
 </div>
