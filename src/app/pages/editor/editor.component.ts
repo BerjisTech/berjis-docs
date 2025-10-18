@@ -11,7 +11,7 @@ import { DocsService, Doc } from '../../docs.service';
   templateUrl: './editor.component.html'
 })
 export class EditorPageComponent implements OnInit {
-  @ViewChild('editor', { static: true }) editorRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('pagesContainer', { static: true }) pagesContainerRef!: ElementRef<HTMLDivElement>;
   doc: Doc | null = null;
   pendingSave?: any;
   hTicks = Array.from({ length: 21 }); // 0..210mm every 10mm
@@ -131,11 +131,31 @@ export class EditorPageComponent implements OnInit {
       const existing = this.docs.get(id) || await this.docs.fetch(id);
       if (existing) this.doc = existing; else { this.router.navigate(['/']); return; }
     }
-    setTimeout(() => { if (this.editorRef && this.doc) this.editorRef.nativeElement.innerHTML = this.doc.content || ''; });
+    setTimeout(() => {
+      if (!this.doc) return;
+      if (this.pagesContainerRef) {
+        const el = this.pagesContainerRef.nativeElement;
+        const content = this.doc.content || '';
+        if (content && content.trim().length > 0) {
+          // Load saved HTML (may be raw blocks without page wrappers)
+          el.innerHTML = content;
+        }
+        // Ensure there is at least one page and move any orphan nodes into it
+        this.ensurePageStructure();
+        this.paginate();
+      }
+    });
   }
 
   onTitleChange() { this.queueSave(); }
-  onEditorInput() { if (!this.doc) return; this.doc.content = this.editorRef.nativeElement.innerHTML; this.queueSave(); }
+  onEditorInput() {
+    if (!this.doc) return;
+    this.ensurePageStructure();
+    this.normalizeAllPages();
+    this.paginate();
+    this.doc.content = this.pagesContainerRef.nativeElement.innerHTML;
+    this.queueSave();
+  }
 
   private queueSave() {
     if (!this.doc) return;
@@ -159,6 +179,126 @@ export class EditorPageComponent implements OnInit {
   insertLink() { const url = prompt('Enter URL'); if (url) this.exec('createLink', url); }
   unlink() { this.exec('unlink'); }
   resetFormatting() { this.exec('removeFormat'); }
+
+  private createPage(): HTMLDivElement {
+    const page = document.createElement('div');
+    page.className = 'page bg-white outline-none w-[210mm] h-[297mm] p-8 overflow-hidden shadow';
+    page.setAttribute('contenteditable', 'true');
+    page.setAttribute('spellcheck', 'true');
+    return page;
+  }
+
+  private getPages(): HTMLDivElement[] {
+    if (!this.pagesContainerRef) return [];
+    return Array.from(this.pagesContainerRef.nativeElement.querySelectorAll<HTMLDivElement>('.page'));
+  }
+
+  private normalizeBlocks(el: HTMLElement) {
+    const nodes = Array.from(el.childNodes);
+    for (const n of nodes) {
+      if (n.nodeType === Node.TEXT_NODE) {
+        const txt = (n.textContent || '').replace(/\u00A0/g, ' ');
+        if (txt.trim().length > 0) {
+          const wrapper = document.createElement('div');
+          wrapper.textContent = txt;
+          el.insertBefore(wrapper, n);
+        }
+        el.removeChild(n);
+      } else if (n.nodeType === Node.ELEMENT_NODE) {
+        // keep as is
+      }
+    }
+  }
+
+  private normalizeAllPages() {
+    for (const page of this.getPages()) this.normalizeBlocks(page);
+  }
+
+  private paginate() {
+    const container = this.pagesContainerRef?.nativeElement; if (!container) return;
+    let pages = this.getPages();
+    if (pages.length === 0) { container.appendChild(this.createPage()); pages = this.getPages(); }
+
+    // Forward pass: push overflow to next pages
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      this.normalizeBlocks(page);
+      let guard = 0;
+      while (page.scrollHeight > page.clientHeight && guard++ < 1000) {
+        let next = pages[i + 1];
+        if (!next) { next = this.createPage(); container.appendChild(next); pages = this.getPages(); }
+        const last = this.findLastBlock(page);
+        if (!last) break;
+        next.insertBefore(last, next.firstChild);
+      }
+    }
+
+    // Backward pass: pull up items if there is space and remove empty trailing pages
+    for (let i = pages.length - 1; i > 0; i--) {
+      const page = pages[i];
+      const prev = pages[i - 1];
+      let moved = true; let safety = 0;
+      while (moved && safety++ < 1000) {
+        moved = false;
+        const first = this.findFirstBlock(page);
+        if (!first) break;
+        prev.appendChild(first);
+        if (prev.scrollHeight > prev.clientHeight + 1) { // overflowed, undo
+          page.insertBefore(first, page.firstChild);
+          break;
+        }
+        moved = true;
+      }
+      // Remove empty trailing page
+      if (!page.textContent || page.textContent.trim().length === 0) {
+        if (page.children.length === 0 || (page.children.length === 1 && (page.firstElementChild as HTMLElement)?.innerText?.trim().length === 0)) {
+          if (pages.length > 1) { container.removeChild(page); pages = this.getPages(); }
+        }
+      }
+    }
+  }
+
+  private findLastBlock(page: HTMLElement): HTMLElement | null {
+    for (let i = page.children.length - 1; i >= 0; i--) {
+      const el = page.children[i] as HTMLElement;
+      if (this.isIgnorable(el)) { page.removeChild(el); continue; }
+      return el;
+    }
+    return null;
+  }
+  private findFirstBlock(page: HTMLElement): HTMLElement | null {
+    for (let i = 0; i < page.children.length; i++) {
+      const el = page.children[i] as HTMLElement;
+      if (this.isIgnorable(el)) { page.removeChild(el); i--; continue; }
+      return el;
+    }
+    return null;
+  }
+  private isIgnorable(el: HTMLElement): boolean {
+    const txt = (el.innerText || '').trim();
+    return txt.length === 0 && el.children.length === 0;
+  }
+
+  private ensurePageStructure() {
+    const container = this.pagesContainerRef?.nativeElement; if (!container) return;
+    let pages = this.getPages();
+    if (pages.length === 0) {
+      const page = this.createPage();
+      container.appendChild(page);
+      pages = [page];
+    }
+    const first = pages[0];
+    const children = Array.from(container.childNodes);
+    for (const n of children) {
+      if (n === first) continue;
+      if (n.nodeType === Node.ELEMENT_NODE) {
+        const el = n as HTMLElement;
+        if (el.classList.contains('page')) continue; // leave page nodes where they are
+      }
+      // Move any non-page node into the first page
+      first.appendChild(n);
+    }
+  }
 }
 
 function stripTags(html: string): string { return html.replace(/<[^>]*>/g, ' '); }

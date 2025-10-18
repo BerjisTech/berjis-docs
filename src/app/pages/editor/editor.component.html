@@ -106,8 +106,9 @@
       <div class="w-[300px] h-full"></div>
       <div #pages class="_w-[calc(100%-600px)] overflow-x-hidden overflow-y-auto _flex-grow h-full p-8 "
         [style.transform]="scale !== 1 ? 'scale(' + scale + ')' : ''" [style.transformOrigin]="'top left'">
-        <div #editor class="bg-white outline-none w-[210mm] h-[297mm] p-8 overflow-hidden"
-          contenteditable="true" (input)="onEditorInput()" spellcheck="true"></div>
+        <div #pagesContainer class="flex flex-col items-center gap-6" (input)="onEditorInput()">
+          <div class="page bg-white outline-none w-[210mm] h-[297mm] p-8 overflow-hidden shadow" contenteditable="true" spellcheck="true"></div>
+        </div>
       </div>
       <div class="w-[300px] h-full"></div>
     </div>
