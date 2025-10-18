@@ -39,11 +39,11 @@
     </div>
   </div>
 
-  <div class="flex flex-wrap items-center gap-1 p-2 rounded bg-blue-200 sticky mt-3 top-0 z-10">
-    <button class="px-2 py-1 border rounded" title="Undo" (click)="exec('undo')">↶</button>
-    <button class="px-2 py-1 border rounded" title="Redo" (click)="exec('redo')">↷</button>
-    <span class="mx-1">|</span>
-    <select class="px-2 py-1 border rounded" title="Font" (change)="exec('fontName', $any($event.target).value)">
+  <div class="flex items-center gap-1.5 p-2 rounded-md bg-slate-100 sticky mt-3 top-0 z-10 shadow-sm overflow-x-auto overflow-y-visible whitespace-nowrap text-sm relative">
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Undo" (click)="exec('undo')">↶</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Redo" (click)="exec('redo')">↷</button>
+    <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
+    <select class="px-2 py-1 rounded-md bg-white shadow-sm w-[150px]" title="Font" (change)="exec('fontName', $any($event.target).value)">
       <option value="">Font</option>
       <option>Arial</option>
       <option>Georgia</option>
@@ -51,70 +51,72 @@
       <option>Courier New</option>
       <option>Verdana</option>
     </select>
-    <select class="px-2 py-1 border rounded" title="Size" (change)="exec('fontSize', $any($event.target).value)">
+    <select class="px-2 py-1 rounded-md bg-white shadow-sm w-[110px]" title="Size" (change)="exec('fontSize', $any($event.target).value)">
       <option value="">Size</option>
       <option value="2">Small</option>
       <option value="3">Normal</option>
       <option value="4">Large</option>
       <option value="5">X-Large</option>
     </select>
-    <span class="mx-1">|</span>
-    <select class="px-2 py-1 border rounded" title="Styles" (change)="applyHeading($any($event.target).value)">
+    <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
+    <select class="px-2 py-1 rounded-md bg-white shadow-sm w-[140px]" title="Styles" (change)="applyHeading($any($event.target).value)">
       <option value="p">Normal text</option>
       <option value="h1">Heading 1</option>
       <option value="h2">Heading 2</option>
       <option value="h3">Heading 3</option>
     </select>
-    <span class="mx-1">|</span>
-    <button class="px-2 py-1 border rounded font-bold" title="Bold" (click)="exec('bold')">B</button>
-    <button class="px-2 py-1 border rounded italic" title="Italic" (click)="exec('italic')">I</button>
-    <button class="px-2 py-1 border rounded underline" title="Underline" (click)="exec('underline')">U</button>
-    <button class="px-2 py-1 border rounded line-through" title="Strikethrough"
+    <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50 font-bold" title="Bold" (click)="exec('bold')">B</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50 italic" title="Italic" (click)="exec('italic')">I</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50 underline" title="Underline" (click)="exec('underline')">U</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50 line-through" title="Strikethrough"
       (click)="exec('strikeThrough')">S</button>
-    <span class="mx-1">|</span>
-    <label class="px-2 py-1 border rounded bg-white cursor-pointer" title="Text color">
+    <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
+    <label class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50 cursor-pointer" title="Text color">
       A
       <input type="color" class="hidden" (input)="setTextColor($any($event.target).value)" />
     </label>
-    <label class="px-2 py-1 border rounded bg-yellow-200 cursor-pointer" title="Highlight color">
+    <label class="px-2 py-1 rounded-md bg-yellow-100 shadow-sm hover:bg-yellow-200 cursor-pointer" title="Highlight color">
       ▉
       <input type="color" class="hidden" (input)="setHighlightColor($any($event.target).value)" />
     </label>
-    <span class="mx-1">|</span>
-    <button class="px-2 py-1 border rounded" title="Left" (click)="exec('justifyLeft')">⟸</button>
-    <button class="px-2 py-1 border rounded" title="Center" (click)="exec('justifyCenter')">≡</button>
-    <button class="px-2 py-1 border rounded" title="Right" (click)="exec('justifyRight')">⟹</button>
-    <button class="px-2 py-1 border rounded" title="Justify" (click)="exec('justifyFull')">⇔</button>
-    <span class="mx-1">|</span>
-    <button class="px-2 py-1 border rounded" title="Indent" (click)="exec('indent')">⇥</button>
-    <button class="px-2 py-1 border rounded" title="Outdent" (click)="exec('outdent')">⇤</button>
-    <button class="px-2 py-1 border rounded" title="Numbered list" (click)="exec('insertOrderedList')">1.</button>
-    <button class="px-2 py-1 border rounded" title="Bulleted list" (click)="exec('insertUnorderedList')">•</button>
-    <button class="px-2 py-1 border rounded" title="Checklist" (click)="toggleChecklist()">☑</button>
-    <button class="px-2 py-1 border rounded" title="Quote" (click)="applyBlock('blockquote')">❝❞</button>
-    <button class="px-2 py-1 border rounded" title="Link" (click)="insertLink()">🔗</button>
-    <button class="px-2 py-1 border rounded" title="Unlink" (click)="unlink()">⨂</button>
-    <button class="px-2 py-1 border rounded" title="Reset formatting" (click)="resetFormatting()">⌫Fmt</button>
-    <button class="px-2 py-1 border rounded" title="Superscript" (click)="exec('superscript')">X²</button>
-    <button class="px-2 py-1 border rounded" title="Subscript" (click)="exec('subscript')">X₂</button>
-    <button class="px-2 py-1 border rounded" title="Format painter" [class.bg-yellow-200]="formatPainterActive" (click)="toggleFormatPainter()">🖌</button>
-    <span class="mx-1">|</span>
-    <button class="px-2 py-1 border rounded" title="Uppercase" (click)="changeCase('upper')">AA</button>
-    <button class="px-2 py-1 border rounded" title="lowercase" (click)="changeCase('lower')">aa</button>
-    <button class="px-2 py-1 border rounded" title="Title Case" (click)="changeCase('title')">Aa</button>
-    <span class="mx-1">|</span>
-    <select class="px-2 py-1 border rounded" title="Line spacing" (change)="setLineSpacing($any($event.target).value)">
+    <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
+    <select class="px-2 py-1 rounded-md bg-white shadow-sm w-[140px]" title="Align" (change)="onAlignChange($any($event.target).value)">
+      <option value="">Align</option>
+      <option value="left">Left</option>
+      <option value="center">Center</option>
+      <option value="right">Right</option>
+      <option value="justify">Justify</option>
+    </select>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Indent" (click)="exec('indent')">⇥</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Outdent" (click)="exec('outdent')">⇤</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Numbered list" (click)="exec('insertOrderedList')">1.</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Bulleted list" (click)="exec('insertUnorderedList')">•</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Checklist" (click)="toggleChecklist()">☑</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Quote" (click)="applyBlock('blockquote')">❝❞</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Link" (click)="insertLink()">🔗</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Unlink" (click)="unlink()">⨂</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Reset formatting" (click)="resetFormatting()">⌫Fmt</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Superscript" (click)="exec('superscript')">X²</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Subscript" (click)="exec('subscript')">X₂</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Format painter" [class.bg-yellow-100]="formatPainterActive" (click)="toggleFormatPainter()">🖌</button>
+    <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Uppercase" (click)="changeCase('upper')">AA</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="lowercase" (click)="changeCase('lower')">aa</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Title Case" (click)="changeCase('title')">Aa</button>
+    <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
+    <select class="px-2 py-1 rounded-md bg-white shadow-sm w-[130px]" title="Line spacing" (change)="setLineSpacing($any($event.target).value)">
       <option value="">Line spacing</option>
       <option value="1">1.0</option>
       <option value="1.15">1.15</option>
       <option value="1.5">1.5</option>
       <option value="2">2.0</option>
     </select>
-    <span class="mx-1">|</span>
-    <button class="px-2 py-1 border rounded" title="LTR" (click)="setDirection('ltr')">LTR</button>
-    <button class="px-2 py-1 border rounded" title="RTL" (click)="setDirection('rtl')">RTL</button>
-    <span class="mx-1">|</span>
-    <select class="px-2 py-1 border rounded" title="Zoom" (change)="setZoom($any($event.target).value)">
+    <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="LTR" (click)="setDirection('ltr')">LTR</button>
+    <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="RTL" (click)="setDirection('rtl')">RTL</button>
+    <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
+    <select class="px-2 py-1 rounded-md bg-white shadow-sm w-[110px]" title="Zoom" (change)="setZoom($any($event.target).value)">
       <option value="1">100%</option>
       <option value="0.75">75%</option>
       <option value="0.5">50%</option>

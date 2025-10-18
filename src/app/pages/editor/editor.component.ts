@@ -33,6 +33,8 @@ export class EditorPageComponent implements OnInit {
   formatPainterActive = false; private painterStyle: Partial<CSSStyleDeclaration> = {};
   // Image options
   imageOptionsModal = false; private selectedImage: HTMLImageElement | null = null; imgWidth = ''; imgAlign: 'inline'|'left'|'center'|'right' = 'inline';
+  // UI state
+  showAlign = false;
   // Page settings
   pagePreset: 'A4' | 'Letter' | 'Legal' | 'A3' = 'A4';
   orientation: 'portrait' | 'landscape' = 'portrait';
@@ -77,25 +79,13 @@ export class EditorPageComponent implements OnInit {
       { icon: '', name: 'Strikethrough', action: 'fmt:strike' },
       { icon: '', name: 'Text color…', action: 'fmt:foreColor' },
       { icon: '', name: 'Highlight color…', action: 'fmt:hiliteColor' },
-      { icon: '', name: 'Align left', action: 'fmt:alignLeft' },
-      { icon: '', name: 'Align center', action: 'fmt:alignCenter' },
-      { icon: '', name: 'Align right', action: 'fmt:alignRight' },
-      { icon: '', name: 'Justify', action: 'fmt:alignJustify' },
-      { icon: '', name: 'Line spacing 1.15', action: 'fmt:ls:1.15' },
-      { icon: '', name: 'Line spacing 1.5', action: 'fmt:ls:1.5' },
-      { icon: '', name: 'Line spacing 2.0', action: 'fmt:ls:2' },
       { icon: '', name: 'Normal text', action: 'fmt:h:p' },
       { icon: '', name: 'Heading 1', action: 'fmt:h:h1' },
       { icon: '', name: 'Heading 2', action: 'fmt:h:h2' },
       { icon: '', name: 'Heading 3', action: 'fmt:h:h3' },
       { icon: '', name: 'Clear formatting', action: 'fmt:clear' },
-      { icon: '', name: 'Direction LTR', action: 'fmt:dir:ltr' },
-      { icon: '', name: 'Direction RTL', action: 'fmt:dir:rtl' },
       { icon: '', name: 'Superscript', action: 'fmt:sup' },
       { icon: '', name: 'Subscript', action: 'fmt:sub' },
-      { icon: '', name: 'UPPERCASE', action: 'fmt:case:upper' },
-      { icon: '', name: 'lowercase', action: 'fmt:case:lower' },
-      { icon: '', name: 'Title Case', action: 'fmt:case:title' },
       { icon: '', name: 'Format painter', action: 'fmt:painter' }
     ]},
     { name: 'Page', menus: [
@@ -438,6 +428,15 @@ export class EditorPageComponent implements OnInit {
   }
   setDirection(dir: 'ltr'|'rtl') { const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return; const range = sel.getRangeAt(0); let el = (range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer as HTMLElement : range.startContainer.parentElement as HTMLElement) || null; let block = el?.closest('.page > *') as HTMLElement | null; if (block) { block.dir = dir; this.onEditorInput(); } }
   setZoom(val: string) { const f = parseFloat(val); if (!isNaN(f) && f > 0) this.scale = f; }
+  onAlignChange(val: string) {
+    switch (val) {
+      case 'left': this.exec('justifyLeft'); break;
+      case 'center': this.exec('justifyCenter'); break;
+      case 'right': this.exec('justifyRight'); break;
+      case 'justify': this.exec('justifyFull'); break;
+      default: break;
+    }
+  }
 
   // Edit menu: next paste uses sanitized HTML
   allowSanitizedPaste = false;
