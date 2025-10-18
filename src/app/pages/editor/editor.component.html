@@ -59,11 +59,27 @@
       <option value="5">X-Large</option>
     </select>
     <span class="mx-1">|</span>
+    <select class="px-2 py-1 border rounded" title="Styles" (change)="applyHeading($any($event.target).value)">
+      <option value="p">Normal text</option>
+      <option value="h1">Heading 1</option>
+      <option value="h2">Heading 2</option>
+      <option value="h3">Heading 3</option>
+    </select>
+    <span class="mx-1">|</span>
     <button class="px-2 py-1 border rounded font-bold" title="Bold" (click)="exec('bold')">B</button>
     <button class="px-2 py-1 border rounded italic" title="Italic" (click)="exec('italic')">I</button>
     <button class="px-2 py-1 border rounded underline" title="Underline" (click)="exec('underline')">U</button>
     <button class="px-2 py-1 border rounded line-through" title="Strikethrough"
       (click)="exec('strikeThrough')">S</button>
+    <span class="mx-1">|</span>
+    <label class="px-2 py-1 border rounded bg-white cursor-pointer" title="Text color">
+      A
+      <input type="color" class="hidden" (input)="setTextColor($any($event.target).value)" />
+    </label>
+    <label class="px-2 py-1 border rounded bg-yellow-200 cursor-pointer" title="Highlight color">
+      ▉
+      <input type="color" class="hidden" (input)="setHighlightColor($any($event.target).value)" />
+    </label>
     <span class="mx-1">|</span>
     <button class="px-2 py-1 border rounded" title="Left" (click)="exec('justifyLeft')">⟸</button>
     <button class="px-2 py-1 border rounded" title="Center" (click)="exec('justifyCenter')">≡</button>
@@ -74,10 +90,37 @@
     <button class="px-2 py-1 border rounded" title="Outdent" (click)="exec('outdent')">⇤</button>
     <button class="px-2 py-1 border rounded" title="Numbered list" (click)="exec('insertOrderedList')">1.</button>
     <button class="px-2 py-1 border rounded" title="Bulleted list" (click)="exec('insertUnorderedList')">•</button>
+    <button class="px-2 py-1 border rounded" title="Checklist" (click)="toggleChecklist()">☑</button>
     <button class="px-2 py-1 border rounded" title="Quote" (click)="applyBlock('blockquote')">❝❞</button>
     <button class="px-2 py-1 border rounded" title="Link" (click)="insertLink()">🔗</button>
     <button class="px-2 py-1 border rounded" title="Unlink" (click)="unlink()">⨂</button>
     <button class="px-2 py-1 border rounded" title="Reset formatting" (click)="resetFormatting()">⌫Fmt</button>
+    <button class="px-2 py-1 border rounded" title="Superscript" (click)="exec('superscript')">X²</button>
+    <button class="px-2 py-1 border rounded" title="Subscript" (click)="exec('subscript')">X₂</button>
+    <button class="px-2 py-1 border rounded" title="Format painter" [class.bg-yellow-200]="formatPainterActive" (click)="toggleFormatPainter()">🖌</button>
+    <span class="mx-1">|</span>
+    <button class="px-2 py-1 border rounded" title="Uppercase" (click)="changeCase('upper')">AA</button>
+    <button class="px-2 py-1 border rounded" title="lowercase" (click)="changeCase('lower')">aa</button>
+    <button class="px-2 py-1 border rounded" title="Title Case" (click)="changeCase('title')">Aa</button>
+    <span class="mx-1">|</span>
+    <select class="px-2 py-1 border rounded" title="Line spacing" (change)="setLineSpacing($any($event.target).value)">
+      <option value="">Line spacing</option>
+      <option value="1">1.0</option>
+      <option value="1.15">1.15</option>
+      <option value="1.5">1.5</option>
+      <option value="2">2.0</option>
+    </select>
+    <span class="mx-1">|</span>
+    <button class="px-2 py-1 border rounded" title="LTR" (click)="setDirection('ltr')">LTR</button>
+    <button class="px-2 py-1 border rounded" title="RTL" (click)="setDirection('rtl')">RTL</button>
+    <span class="mx-1">|</span>
+    <select class="px-2 py-1 border rounded" title="Zoom" (change)="setZoom($any($event.target).value)">
+      <option value="1">100%</option>
+      <option value="0.75">75%</option>
+      <option value="0.5">50%</option>
+      <option value="1.25">125%</option>
+      <option value="1.5">150%</option>
+    </select>
   </div>
 
 </div>
@@ -128,7 +171,7 @@
       <div class="w-[300px] h-full"></div>
       <div #pages class="_w-[calc(100%-600px)] overflow-x-hidden overflow-y-auto _flex-grow h-full p-8 "
         [style.transform]="scale !== 1 ? 'scale(' + scale + ')' : ''" [style.transformOrigin]="'top left'">
-        <div #pagesContainer class="flex flex-col items-center gap-6" (input)="onEditorInput()" (keydown)="onEditorKeydown($event)" (paste)="onEditorPaste($event)">
+        <div #pagesContainer class="flex flex-col items-center gap-6" (input)="onEditorInput()" (keydown)="onEditorKeydown($event)" (paste)="onEditorPaste($event)" (mouseup)="onEditorMouseup($event)">
           <div class="page bg-white outline-none w-[210mm] h-[297mm] p-8 overflow-hidden shadow" contenteditable="true" spellcheck="true"></div>
         </div>
       </div>
@@ -183,6 +226,28 @@
   </div>
 </div>
 
+<!-- Find & Replace Modal -->
+<div *ngIf="findModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+  <div class="bg-white rounded shadow w-[520px] p-4">
+    <div class="text-lg font-semibold mb-2">Find and Replace</div>
+    <label class="text-sm text-gray-600">Find</label>
+    <input class="w-full border rounded px-2 py-1 mt-1" [(ngModel)]="findQuery" />
+    <label class="text-sm text-gray-600 mt-3 block">Replace with</label>
+    <input class="w-full border rounded px-2 py-1 mt-1" [(ngModel)]="replaceQuery" />
+    <div class="flex items-center gap-4 mt-3 text-sm">
+      <label><input type="checkbox" [(ngModel)]="findCase" /> Case sensitive</label>
+      <label><input type="checkbox" [(ngModel)]="findWhole" /> Match whole word</label>
+    </div>
+    <div class="flex items-center justify-end gap-2 mt-4">
+      <button class="px-3 py-1 border rounded" (click)="closeFind()">Close</button>
+      <button class="px-3 py-1 border rounded" (click)="findPrev()">Prev</button>
+      <button class="px-3 py-1 border rounded" (click)="findNext()">Next</button>
+      <button class="px-3 py-1 border rounded" (click)="replaceOne()">Replace</button>
+      <button class="px-3 py-1 bg-blue-600 text-white rounded" (click)="replaceAll()">Replace All</button>
+    </div>
+  </div>
+</div>
+
 <!-- Page Setup Modal -->
 <div *ngIf="pageSetupModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
   <div class="bg-white rounded shadow w-[520px] p-4">
@@ -225,4 +290,30 @@
     </div>
   </div>
   
+</div>
+
+<!-- Image Options Modal -->
+<div *ngIf="imageOptionsModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+  <div class="bg-white rounded shadow w-[420px] p-4">
+    <div class="text-lg font-semibold mb-2">Image Options</div>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="text-sm text-gray-600">Width</label>
+        <input class="w-full border rounded px-2 py-1 mt-1" [(ngModel)]="imgWidth" placeholder="e.g. 300px or 50%" />
+      </div>
+      <div>
+        <label class="text-sm text-gray-600">Align</label>
+        <select class="w-full border rounded px-2 py-1 mt-1" [(ngModel)]="imgAlign">
+          <option value="inline">Inline</option>
+          <option value="left">Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 mt-4">
+      <button class="px-3 py-1 border rounded" (click)="closeImageOptions()">Cancel</button>
+      <button class="px-3 py-1 bg-blue-600 text-white rounded" (click)="applyImageOptions()">Apply</button>
+    </div>
+  </div>
 </div>

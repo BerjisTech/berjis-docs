@@ -27,6 +27,12 @@ export class EditorPageComponent implements OnInit {
   renameTitle = '';
   linkModal = false;
   linkUrl = '';
+  // Find & Replace
+  findModal = false; findQuery = ''; replaceQuery = ''; findCase = false; findWhole = false;
+  // Format painter
+  formatPainterActive = false; private painterStyle: Partial<CSSStyleDeclaration> = {};
+  // Image options
+  imageOptionsModal = false; private selectedImage: HTMLImageElement | null = null; imgWidth = ''; imgAlign: 'inline'|'left'|'center'|'right' = 'inline';
   // Page settings
   pagePreset: 'A4' | 'Letter' | 'Legal' | 'A3' = 'A4';
   orientation: 'portrait' | 'landscape' = 'portrait';
@@ -64,6 +70,34 @@ export class EditorPageComponent implements OnInit {
       { icon: '', name: 'Toggle ruler', action: 'toggleRuler' },
       { icon: '', name: 'Zoom 100%', action: 'zoom100' }
     ]},
+    { name: 'Format', menus: [
+      { icon: '', name: 'Bold', action: 'fmt:bold' },
+      { icon: '', name: 'Italic', action: 'fmt:italic' },
+      { icon: '', name: 'Underline', action: 'fmt:underline' },
+      { icon: '', name: 'Strikethrough', action: 'fmt:strike' },
+      { icon: '', name: 'Text color…', action: 'fmt:foreColor' },
+      { icon: '', name: 'Highlight color…', action: 'fmt:hiliteColor' },
+      { icon: '', name: 'Align left', action: 'fmt:alignLeft' },
+      { icon: '', name: 'Align center', action: 'fmt:alignCenter' },
+      { icon: '', name: 'Align right', action: 'fmt:alignRight' },
+      { icon: '', name: 'Justify', action: 'fmt:alignJustify' },
+      { icon: '', name: 'Line spacing 1.15', action: 'fmt:ls:1.15' },
+      { icon: '', name: 'Line spacing 1.5', action: 'fmt:ls:1.5' },
+      { icon: '', name: 'Line spacing 2.0', action: 'fmt:ls:2' },
+      { icon: '', name: 'Normal text', action: 'fmt:h:p' },
+      { icon: '', name: 'Heading 1', action: 'fmt:h:h1' },
+      { icon: '', name: 'Heading 2', action: 'fmt:h:h2' },
+      { icon: '', name: 'Heading 3', action: 'fmt:h:h3' },
+      { icon: '', name: 'Clear formatting', action: 'fmt:clear' },
+      { icon: '', name: 'Direction LTR', action: 'fmt:dir:ltr' },
+      { icon: '', name: 'Direction RTL', action: 'fmt:dir:rtl' },
+      { icon: '', name: 'Superscript', action: 'fmt:sup' },
+      { icon: '', name: 'Subscript', action: 'fmt:sub' },
+      { icon: '', name: 'UPPERCASE', action: 'fmt:case:upper' },
+      { icon: '', name: 'lowercase', action: 'fmt:case:lower' },
+      { icon: '', name: 'Title Case', action: 'fmt:case:title' },
+      { icon: '', name: 'Format painter', action: 'fmt:painter' }
+    ]},
     { name: 'Page', menus: [
       { icon: '', name: 'A4', action: 'size:A4' },
       { icon: '', name: 'Letter', action: 'size:Letter' },
@@ -79,7 +113,26 @@ export class EditorPageComponent implements OnInit {
     { name: 'Insert', menus: [
       { icon: '', name: 'Image', action: 'insertImage' },
       { icon: '', name: 'Table', action: 'insertTable' },
-      { icon: '', name: 'Page break', action: 'pageBreak' }
+      { icon: '', name: 'Page break', action: 'pageBreak' },
+      { icon: '', name: 'Image options…', action: 'imageOptions' }
+    ]},
+    { name: 'Tools', menus: [
+      { icon: '', name: 'Word count', action: 'tools:wordCount' },
+      { icon: '', name: 'Spellcheck: Toggle', action: 'tools:toggleSpell' },
+      { icon: '', name: 'Paste (keep formatting, sanitized)', action: 'tools:pasteSanitized' },
+      { icon: '', name: 'Find and replace…', action: 'tools:find' }
+    ]},
+    { name: 'Table', menus: [
+      { icon: '', name: 'Insert row above', action: 'table:rowAbove' },
+      { icon: '', name: 'Insert row below', action: 'table:rowBelow' },
+      { icon: '', name: 'Insert column left', action: 'table:colLeft' },
+      { icon: '', name: 'Insert column right', action: 'table:colRight' },
+      { icon: '', name: 'Delete row', action: 'table:delRow' },
+      { icon: '', name: 'Delete column', action: 'table:delCol' },
+      { icon: '', name: 'Delete table', action: 'table:delTable' }
+    ]},
+    { name: 'Extensions', menus: [
+      { icon: '', name: 'Coming soon', action: 'noop' }
     ]},
     { name: 'Help', menus: [
       { icon: '', name: 'Docs help', action: 'help' }
@@ -90,6 +143,21 @@ export class EditorPageComponent implements OnInit {
     if (action.startsWith('size:')) { this.setPageSize(action.split(':')[1] as any); return; }
     if (action.startsWith('orient:')) { this.setOrientation(action.split(':')[1] as any); return; }
     if (action.startsWith('margins:')) { this.setMargins(action.split(':')[1] as any); return; }
+    if (action.startsWith('fmt:ls:')) { this.setLineSpacing(action.split(':')[2]); return; }
+    if (action === 'fmt:bold') { this.exec('bold'); return; }
+    if (action === 'fmt:italic') { this.exec('italic'); return; }
+    if (action === 'fmt:underline') { this.exec('underline'); return; }
+    if (action === 'fmt:strike') { this.exec('strikeThrough'); return; }
+    if (action === 'fmt:alignLeft') { this.exec('justifyLeft'); return; }
+    if (action === 'fmt:alignCenter') { this.exec('justifyCenter'); return; }
+    if (action === 'fmt:alignRight') { this.exec('justifyRight'); return; }
+    if (action === 'fmt:alignJustify') { this.exec('justifyFull'); return; }
+    if (action.startsWith('fmt:h:')) { this.applyHeading(action.split(':')[2] as any); return; }
+    if (action === 'fmt:clear') { this.resetFormatting(); return; }
+    if (action.startsWith('fmt:dir:')) { this.setDirection(action.split(':')[2] as any); return; }
+    if (action === 'fmt:sup') { this.exec('superscript'); return; }
+    if (action === 'fmt:sub') { this.exec('subscript'); return; }
+    if (action.startsWith('fmt:case:')) { this.changeCase(action.split(':')[2] as any); return; }
     switch (action) {
       case 'new': this.router.navigate(['/editor', 'new']); break;
       case 'open': this.showOpen(); break;
@@ -105,7 +173,21 @@ export class EditorPageComponent implements OnInit {
       case 'insertTable': this.insertTable(); break;
       case 'pageBreak': this.insertPageBreak(); break;
       case 'insertLink': this.showLink(); break;
+      case 'imageOptions': this.openImageOptions(); break;
       case 'pageSetup': this.openPageSetup(); break;
+      case 'tools:wordCount': this.showWordCount(); break;
+      case 'tools:toggleSpell': this.toggleSpellcheck(); break;
+      case 'tools:pasteSanitized': this.requestSanitizedPaste(); break;
+      case 'tools:find': this.openFind(); break;
+      case 'table:rowAbove': this.modifyTable('rowAbove'); break;
+      case 'table:rowBelow': this.modifyTable('rowBelow'); break;
+      case 'table:colLeft': this.modifyTable('colLeft'); break;
+      case 'table:colRight': this.modifyTable('colRight'); break;
+      case 'table:delRow': this.modifyTable('delRow'); break;
+      case 'table:delCol': this.modifyTable('delCol'); break;
+      case 'table:delTable': this.modifyTable('delTable'); break;
+      case 'fmt:foreColor': { const c = prompt('Text color (CSS color)'); if (c) this.setTextColor(c); break; }
+      case 'fmt:hiliteColor': { const c = prompt('Highlight color (CSS color)'); if (c) this.setHighlightColor(c); break; }
       default: break;
     }
   }
@@ -141,6 +223,30 @@ export class EditorPageComponent implements OnInit {
   private insertTable(){
     const html = '<table border="1" cellpadding="4" cellspacing="0"><tr><td>Cell</td><td>Cell</td></tr><tr><td>Cell</td><td>Cell</td></tr></table>';
     document.execCommand('insertHTML', false, html); this.onEditorInput();
+  }
+  private modifyTable(action: 'rowAbove'|'rowBelow'|'colLeft'|'colRight'|'delRow'|'delCol'|'delTable'){
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return;
+    let node: Node | null = sel.getRangeAt(0).startContainer;
+    const cell = (node as any).parentElement?.closest('td,th') as HTMLTableCellElement | null; if (!cell) { alert('Place caret inside a table cell.'); return; }
+    const row = cell.parentElement as HTMLTableRowElement; const table = row.closest('table') as HTMLTableElement; if (!row || !table) return;
+    const rowIndex = (row.sectionRowIndex ?? row.rowIndex);
+    const cellIndex = cell.cellIndex;
+    if (action === 'delTable') { table.remove(); this.onEditorInput(); return; }
+    if (action === 'rowAbove' || action === 'rowBelow') {
+      const ref = row;
+      const newRow = row.cloneNode(true) as HTMLTableRowElement; // clone structure
+      for (const td of Array.from(newRow.cells)) td.innerHTML = '';
+      if (action === 'rowAbove') ref.parentElement?.insertBefore(newRow, ref); else ref.parentElement?.insertBefore(newRow, ref.nextSibling);
+    } else if (action === 'delRow') {
+      row.remove();
+    } else if (action === 'colLeft' || action === 'colRight') {
+      for (const r of Array.from(table.rows)) {
+        const newCell = r.insertCell(action === 'colLeft' ? cellIndex : cellIndex + 1); newCell.innerHTML = '';
+      }
+    } else if (action === 'delCol') {
+      for (const r of Array.from(table.rows)) { if (r.cells.length > 1) r.deleteCell(cellIndex); }
+    }
+    this.onEditorInput();
   }
   private insertImage(){
     const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
@@ -269,25 +375,249 @@ export class EditorPageComponent implements OnInit {
       // no onEditorInput here since content didn't change
     }
   }
+  onEditorMouseup(_e: MouseEvent) { this.applyPainterAtSelection(); }
 
   onEditorPaste(e: ClipboardEvent) {
     // Default to plain text paste to avoid huge external HTML trees causing hangs
     e.preventDefault();
+    const html = e.clipboardData?.getData('text/html') || '';
     const text = e.clipboardData?.getData('text/plain') || '';
-    if (text) {
+    if (this.allowSanitizedPaste && html) {
+      const safe = this.sanitizeHtml(html);
+      document.execCommand('insertHTML', false, safe);
+      this.allowSanitizedPaste = false;
+    } else if (text) {
       try { document.execCommand('insertText', false, text); }
       catch { const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return; const range = sel.getRangeAt(0); range.deleteContents(); range.insertNode(document.createTextNode(text)); }
-      this.onEditorInput();
-      return;
-    }
-    const html = e.clipboardData?.getData('text/html') || '';
-    if (html) {
-      // Fallback: strip tags to text
+    } else if (html) {
       const stripped = stripTags(html);
       try { document.execCommand('insertText', false, stripped); }
       catch { const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return; const range = sel.getRangeAt(0); range.deleteContents(); range.insertNode(document.createTextNode(stripped)); }
-      this.onEditorInput();
     }
+    this.onEditorInput();
+  }
+
+  // Toolbar helpers
+  applyHeading(tag: 'p'|'h1'|'h2'|'h3') { this.applyBlock(tag); }
+  setTextColor(color: string) { document.execCommand('foreColor', false, color); this.onEditorInput(); }
+  setHighlightColor(color: string) { document.execCommand('hiliteColor', false, color); this.onEditorInput(); }
+  setLineSpacing(value: string) {
+    if (!value) return;
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    let node: Node | null = range.startContainer;
+    let block = (node.nodeType === Node.ELEMENT_NODE ? node as HTMLElement : (node?.parentElement as HTMLElement));
+    block = block?.closest('.page > *') as HTMLElement;
+    if (block) { (block as HTMLElement).style.lineHeight = value; this.onEditorInput(); }
+  }
+  toggleChecklist() {
+    // Simple checklist: create a UL if not in list; otherwise toggle checkbox at start of current LI
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    let el = (range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer as HTMLElement : range.startContainer.parentElement as HTMLElement) || null;
+    const li = el?.closest('li') as HTMLElement | null;
+    if (!li) {
+      // wrap current block into a UL with an LI + checkbox
+      let block = el?.closest('.page > *') as HTMLElement | null;
+      if (!block) return;
+      const ul = document.createElement('ul'); ul.style.listStyle = 'none'; ul.style.paddingLeft = '1.2em';
+      const liNew = document.createElement('li');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.style.marginRight = '0.5em';
+      liNew.appendChild(cb);
+      // move block into li
+      liNew.appendChild(block.cloneNode(true));
+      block.replaceWith(ul);
+      ul.appendChild(liNew);
+    } else {
+      // toggle existing checkbox or insert if missing
+      let cb = li.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+      if (!cb) { cb = document.createElement('input'); cb.type = 'checkbox'; cb.style.marginRight = '0.5em'; li.insertBefore(cb, li.firstChild); }
+      else { cb.checked = !cb.checked; }
+    }
+    this.onEditorInput();
+  }
+  setDirection(dir: 'ltr'|'rtl') { const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return; const range = sel.getRangeAt(0); let el = (range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer as HTMLElement : range.startContainer.parentElement as HTMLElement) || null; let block = el?.closest('.page > *') as HTMLElement | null; if (block) { block.dir = dir; this.onEditorInput(); } }
+  setZoom(val: string) { const f = parseFloat(val); if (!isNaN(f) && f > 0) this.scale = f; }
+
+  // Edit menu: next paste uses sanitized HTML
+  allowSanitizedPaste = false;
+  requestSanitizedPaste() { this.allowSanitizedPaste = true; alert('Next paste will keep formatting (sanitized). Press Ctrl+V now.'); }
+
+  private sanitizeHtml(html: string): string {
+    const allowed = new Set(['P','BR','B','STRONG','I','EM','U','S','A','UL','OL','LI','H1','H2','H3','BLOCKQUOTE','CODE','PRE','SPAN','TABLE','THEAD','TBODY','TR','TH','TD','IMG']);
+    const temp = document.createElement('div'); temp.innerHTML = html;
+    const walker = (node: Node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+        if (!allowed.has(el.tagName)) { const parent = el.parentNode; while (el.firstChild) parent?.insertBefore(el.firstChild, el); parent?.removeChild(el); return; }
+        // scrub attributes
+        Array.from(el.attributes).forEach(attr => {
+          const name = attr.name.toLowerCase();
+          if (el.tagName === 'A' && name === 'href') return;
+          if (el.tagName === 'IMG' && (name === 'src' || name === 'alt')) return;
+          if (name === 'style') { el.setAttribute('style', this.scrubStyle(el.getAttribute('style')||'')); return; }
+          el.removeAttribute(attr.name);
+        });
+      }
+      let child = node.firstChild; while (child) { const next = child.nextSibling; walker(child); child = next; }
+    };
+    walker(temp);
+    return temp.innerHTML;
+  }
+  private scrubStyle(style: string): string {
+    // whitelist a few text styles
+    const safe: string[] = [];
+    style.split(';').forEach(rule => {
+      const [rawK, rawV] = rule.split(':'); if (!rawK || !rawV) return;
+      const k = rawK.trim().toLowerCase(); const v = rawV.trim();
+      if (['font-weight','font-style','text-decoration','color','background-color','font-size','font-family','line-height','text-align','direction'].includes(k)) safe.push(`${k}: ${v}`);
+    });
+    return safe.join('; ');
+  }
+
+  // Case change
+  changeCase(which: 'upper'|'lower'|'title') {
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const text = sel.toString(); if (!text) return;
+    let out = text;
+    if (which === 'upper') out = text.toUpperCase();
+    else if (which === 'lower') out = text.toLowerCase();
+    else out = text.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    range.deleteContents(); range.insertNode(document.createTextNode(out));
+    this.onEditorInput();
+  }
+
+  // Format painter
+  toggleFormatPainter() {
+    this.formatPainterActive = !this.formatPainterActive;
+    if (this.formatPainterActive) {
+      const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) { this.formatPainterActive = false; return; }
+      const range = sel.getRangeAt(0);
+      let el = (range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer as HTMLElement : range.startContainer.parentElement as HTMLElement) || null;
+      const block = el?.closest('.page > *') as HTMLElement | null; if (!block) { this.formatPainterActive = false; return; }
+      const cs = window.getComputedStyle(block);
+      const keys = ['fontWeight','fontStyle','textDecoration','color','backgroundColor','fontSize','fontFamily','lineHeight','textAlign','direction'] as const;
+      const st: any = {}; keys.forEach(k => st[k] = (cs as any)[k]); this.painterStyle = st;
+    } else { this.painterStyle = {}; }
+  }
+  private applyPainterAtSelection() {
+    if (!this.formatPainterActive || !this.painterStyle) return;
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    let el = (range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer as HTMLElement : range.startContainer.parentElement as HTMLElement) || null;
+    const block = el?.closest('.page > *') as HTMLElement | null; if (!block) return;
+    Object.assign(block.style, this.painterStyle);
+    this.formatPainterActive = false; this.painterStyle = {}; this.onEditorInput();
+  }
+
+  // Image options
+  openImageOptions() {
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) { alert('Select an image first'); return; }
+    let node: Node | null = sel.getRangeAt(0).startContainer;
+    const img = (node instanceof HTMLImageElement) ? node : (node && (node as any).parentElement?.closest('img'));
+    if (!img) { alert('Place the caret on an image to edit its options.'); return; }
+    this.selectedImage = img as HTMLImageElement;
+    this.imgWidth = this.selectedImage.style.width || '';
+    const cs = window.getComputedStyle(this.selectedImage);
+    if (cs.display === 'block' && cs.marginLeft === 'auto' && cs.marginRight === 'auto') this.imgAlign = 'center';
+    else if (cs.cssFloat === 'left') this.imgAlign = 'left';
+    else if (cs.cssFloat === 'right') this.imgAlign = 'right';
+    else this.imgAlign = 'inline';
+    this.imageOptionsModal = true;
+  }
+  closeImageOptions(){ this.imageOptionsModal = false; this.selectedImage = null; }
+  applyImageOptions() {
+    if (!this.selectedImage) return;
+    this.selectedImage.style.width = this.imgWidth || '';
+    this.selectedImage.style.maxWidth = '100%';
+    this.selectedImage.style.height = 'auto';
+    // reset alignment
+    this.selectedImage.style.cssFloat = '';
+    (this.selectedImage.style as any).float = '';
+    this.selectedImage.style.display = '';
+    this.selectedImage.style.margin = '';
+    if (this.imgAlign === 'left') { (this.selectedImage.style as any).float = 'left'; }
+    else if (this.imgAlign === 'right') { (this.selectedImage.style as any).float = 'right'; }
+    else if (this.imgAlign === 'center') { this.selectedImage.style.display = 'block'; this.selectedImage.style.margin = '0 auto'; }
+    this.imageOptionsModal = false; this.onEditorInput();
+  }
+
+  // Find & Replace
+  openFind(){ this.findModal = true; }
+  closeFind(){ this.findModal = false; }
+  private textNodesUnder(el: HTMLElement): Text[] { const out: Text[] = []; const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n: Node | null; while (n = walker.nextNode()) { out.push(n as Text); } return out; }
+  private matchAt(text: string, idx: number, q: string, whole: boolean, cs: boolean): boolean {
+    const slice = text.substr(idx, q.length); if ((cs ? slice : slice.toLowerCase()) !== (cs ? q : q.toLowerCase())) return false;
+    if (!whole) return true;
+    const isWord = (c: string) => /[\w\p{L}]/u.test(c);
+    const prev = text[idx - 1]; const next = text[idx + q.length];
+    return (!prev || !isWord(prev)) && (!next || !isWord(next));
+  }
+  findNext() {
+    const q = this.findQuery || ''; if (!q) return;
+    const nodes = this.textNodesUnder(this.pagesContainerRef.nativeElement);
+    const sel = document.getSelection(); const startNode = sel && sel.rangeCount ? sel.getRangeAt(0).endContainer : null;
+    let started = !startNode;
+    for (const n of nodes) {
+      if (!started) { started = (n === startNode); continue; }
+      const text = String(n.textContent || '');
+      for (let i = 0; i <= text.length - q.length; i++) {
+        if (this.matchAt(text, i, q, this.findWhole, this.findCase)) {
+          const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + q.length);
+          const sel2 = document.getSelection(); sel2?.removeAllRanges(); sel2?.addRange(r);
+          (r.commonAncestorContainer as Element)?.parentElement?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          return;
+        }
+      }
+    }
+    // wrap around
+    if (nodes.length) { const n = nodes[0]; const r = document.createRange(); r.setStart(n, 0); r.collapse(true); const sel2 = document.getSelection(); sel2?.removeAllRanges(); sel2?.addRange(r); this.findNext(); }
+  }
+  findPrev() {
+    const q = this.findQuery || ''; if (!q) return;
+    const nodes = this.textNodesUnder(this.pagesContainerRef.nativeElement);
+    const sel = document.getSelection(); const startNode = sel && sel.rangeCount ? sel.getRangeAt(0).startContainer : null;
+    let idx = startNode ? nodes.indexOf(startNode as Text) : nodes.length - 1;
+    for (let ni = idx; ni >= 0; ni--) {
+      const n = nodes[ni]; const text = String(n.textContent || '');
+      for (let i = text.length - q.length; i >= 0; i--) {
+        if (this.matchAt(text, i, q, this.findWhole, this.findCase)) {
+          const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + q.length);
+          const sel2 = document.getSelection(); sel2?.removeAllRanges(); sel2?.addRange(r);
+          (r.commonAncestorContainer as Element)?.parentElement?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          return;
+        }
+      }
+    }
+  }
+  replaceOne() {
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return; const range = sel.getRangeAt(0);
+    const q = this.findQuery || ''; const repl = this.replaceQuery || '';
+    if (!q) return;
+    if (sel.toString() && (!this.findWhole || new RegExp(`^${q}$`).test(sel.toString()))) {
+      range.deleteContents(); range.insertNode(document.createTextNode(repl));
+      this.onEditorInput();
+      this.findNext();
+    }
+  }
+  replaceAll() {
+    const q = this.findQuery || ''; const repl = this.replaceQuery || '';
+    if (!q) return;
+    const nodes = this.textNodesUnder(this.pagesContainerRef.nativeElement);
+    for (const n of nodes) {
+      const text = String(n.textContent || '');
+      const cs = this.findCase; const whole = this.findWhole;
+      if (!text) continue;
+      let i = 0; let out = '';
+      while (i <= text.length - q.length) {
+        if (this.matchAt(text, i, q, whole, cs)) { out += repl; i += q.length; }
+        else { out += text[i]; i++; }
+      }
+      out += text.slice(i);
+      if (out !== text) n.textContent = out;
+    }
+    this.onEditorInput();
   }
 
   private createPage(): HTMLDivElement {
@@ -645,6 +975,16 @@ export class EditorPageComponent implements OnInit {
     this.applyPageStyles();
     this.paginate();
     this.onEditorInput();
+  }
+
+  private showWordCount() {
+    const text = stripTags(this.pagesContainerRef?.nativeElement.innerHTML || '').trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    const chars = text.replace(/\s/g, '').length;
+    alert(`Words: ${words}\nCharacters (no spaces): ${chars}`);
+  }
+  private toggleSpellcheck() {
+    for (const page of this.getPages()) page.setAttribute('spellcheck', page.getAttribute('spellcheck') === 'true' ? 'false' : 'true');
   }
 }
 
