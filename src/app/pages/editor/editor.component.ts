@@ -35,6 +35,156 @@ export class EditorPageComponent implements OnInit {
   imageOptionsModal = false; private selectedImage: HTMLImageElement | null = null; imgWidth = ''; imgAlign: 'inline'|'left'|'center'|'right' = 'inline';
   // UI state
   showAlign = false;
+  openMenuIndex: number | null = null;
+  // Menu placeholder structure
+  docsToolBar: any = [
+    {
+      name: 'Menu Bar',
+      items: [
+        {
+          name: 'File',
+          children: [
+            { name: 'New document' },
+            { name: 'New', children: [ { name: 'From template gallery' } ] },
+            { name: 'Open' },
+            { name: 'Make a copy' },
+            { name: 'Share', children: [ { name: 'Share with others' }, { name: 'Publish to web' } ] },
+            { name: 'Email', children: [ { name: 'Email as attachment' }, { name: 'Email collaborators' } ] },
+            { name: 'Download', children: [
+              { name: 'Microsoft Word (.docx)' },
+              { name: 'OpenDocument Format (.odt)' },
+              { name: 'Rich Text Format (.rtf)' },
+              { name: 'PDF Document (.pdf)' },
+              { name: 'Plain Text (.txt)' },
+              { name: 'Web Page (.html, zipped)' },
+              { name: 'EPUB Publication (.epub)' }
+            ]},
+            { name: 'Rename' },
+            { name: 'Move' },
+            { name: 'Add shortcut to Drive' },
+            { name: 'Move to trash' },
+            { name: 'Version history', children: [ { name: 'Name current version' }, { name: 'See version history' } ] },
+            { name: 'Make available offline' },
+            { name: 'Details' },
+            { name: 'Language' },
+            { name: 'Page setup' },
+            { name: 'Print' }
+          ]
+        },
+        {
+          name: 'Edit',
+          children: [
+            { name: 'Undo' },
+            { name: 'Redo' },
+            { name: 'Cut' },
+            { name: 'Copy' },
+            { name: 'Paste' },
+            { name: 'Paste without formatting' },
+            { name: 'Select all' },
+            { name: 'Delete' },
+            { name: 'Find and replace' },
+            { name: 'Select more', children: [ { name: 'Select all matching text' }, { name: 'Select all matching images' } ] }
+          ]
+        },
+        {
+          name: 'View',
+          children: [
+            { name: 'Mode', children: [ { name: 'Editing' }, { name: 'Suggesting' }, { name: 'Viewing' } ] },
+            { name: 'Show print layout' },
+            { name: 'Show outline' },
+            { name: 'Show document outline' },
+            { name: 'Show ruler' },
+            { name: 'Show equation toolbar' },
+            { name: 'Show section breaks' },
+            { name: 'Show non-printing characters' },
+            { name: 'Full screen' }
+          ]
+        },
+        {
+          name: 'Insert',
+          children: [
+            { name: 'Image', children: [
+              { name: 'Upload from computer' }, { name: 'Search the web' }, { name: 'Drive' }, { name: 'Photos' }, { name: 'By URL' }, { name: 'Camera' }
+            ]},
+            { name: 'Table' },
+            { name: 'Drawing', children: [ { name: 'New' }, { name: 'From Drive' } ] },
+            { name: 'Chart', children: [ { name: 'Bar' }, { name: 'Column' }, { name: 'Line' }, { name: 'Pie' }, { name: 'From Sheets' } ] },
+            { name: 'Horizontal line' },
+            { name: 'Emoji' },
+            { name: 'Smart chips', children: [ { name: 'People' }, { name: 'File' }, { name: 'Calendar event' }, { name: 'Date' }, { name: 'Dropdown' } ] },
+            { name: 'Footnote' },
+            { name: 'Building blocks', children: [
+              { name: 'Equation' }, { name: 'Table of contents' }, { name: 'Header' }, { name: 'Footer' }, { name: 'Page number' }, { name: 'Page count' },
+              { name: 'Page break' }, { name: 'Section break (next page)' }, { name: 'Section break (continuous)' }, { name: 'Column break' }
+            ]},
+            { name: 'Link' }, { name: 'Comment' }, { name: 'Bookmark' }, { name: 'Watermark' }
+          ]
+        },
+        {
+          name: 'Format',
+          children: [
+            { name: 'Text', children: [
+              { name: 'Bold' }, { name: 'Italic' }, { name: 'Underline' }, { name: 'Strikethrough' }, { name: 'Superscript' }, { name: 'Subscript' }, { name: 'Font size' },
+              { name: 'Capitalization', children: [ { name: 'lowercase' }, { name: 'UPPERCASE' }, { name: 'Title Case' } ] }
+            ]},
+            { name: 'Paragraph styles', children: [
+              { name: 'Normal text' }, { name: 'Title' }, { name: 'Subtitle' }, { name: 'Heading 1' }, { name: 'Heading 2' }, { name: 'Heading 3' }, { name: 'Heading 4' }, { name: 'Heading 5' }, { name: 'Heading 6' },
+              { name: "Apply 'style'" }, { name: "Update 'style' to match" }, { name: 'Options', children: [ { name: 'Save as my default styles' }, { name: 'Use my default styles' }, { name: 'Reset styles' } ] }
+            ]},
+            { name: 'Align & indent', children: [
+              { name: 'Left' }, { name: 'Center' }, { name: 'Right' }, { name: 'Justified' }, { name: 'Increase indent' }, { name: 'Decrease indent' }, { name: 'Indentation options' }
+            ]},
+            { name: 'Line & paragraph spacing', children: [
+              { name: 'Single' }, { name: '1.15' }, { name: '1.5' }, { name: 'Double' }, { name: 'Custom spacing' }, { name: 'Add space before paragraph' }, { name: 'Add space after paragraph' }
+            ]},
+            { name: 'Columns' },
+            { name: 'Bullets & numbering', children: [
+              { name: 'List options', children: [ { name: 'Restart numbering' }, { name: 'Continue previous numbering' } ] },
+              { name: 'More bullets' }, { name: 'Numbered list' }, { name: 'Bulleted list' }, { name: 'Checklist' }
+            ]},
+            { name: 'Borders & lines' }, { name: 'Headers & footers' }, { name: 'Page numbers' }, { name: 'Page orientation' },
+            { name: 'Table', children: [
+              { name: 'Table properties' }, { name: 'Insert row above' }, { name: 'Insert row below' }, { name: 'Insert column left' }, { name: 'Insert column right' },
+              { name: 'Delete row' }, { name: 'Delete column' }, { name: 'Delete table' }, { name: 'Distribute rows' }, { name: 'Distribute columns' }, { name: 'Merge cells' }, { name: 'Unmerge cells' }, { name: 'Pin header rows' }
+            ]},
+            { name: 'Image', children: [ { name: 'Inline' }, { name: 'Wrap text' }, { name: 'Break text' }, { name: 'Image options' }, { name: 'Reset image' }, { name: 'Alt text' } ] },
+            { name: 'Clear formatting' }
+          ]
+        },
+        {
+          name: 'Tools',
+          children: [
+            { name: 'Spelling and grammar', children: [ { name: 'Show spelling suggestions' }, { name: 'Show grammar suggestions' }, { name: 'Personal dictionary' } ] },
+            { name: 'Word count' }, { name: 'Review suggested edits' }, { name: 'Compare documents' },
+            { name: 'Citations', children: [ { name: 'Add citation source' }, { name: 'Manage citations' } ] },
+            { name: 'Explore' }, { name: 'Dictionary' }, { name: 'Translate document' }, { name: 'Voice typing' }, { name: 'Linked objects' }, { name: 'Preferences' }
+          ]
+        },
+        {
+          name: 'Extensions',
+          children: [ { name: 'Add-ons', children: [ { name: 'Get add-ons' }, { name: 'Manage add-ons' } ] }, { name: 'Apps Script' } ]
+        },
+        {
+          name: 'Help',
+          children: [
+            { name: 'Search the menus' }, { name: 'Docs Help' }, { name: 'Training' }, { name: 'Updates' }, { name: 'Help Docs improve' }, { name: 'Report abuse' }, { name: 'Privacy Policy' }, { name: 'Terms of Service' }, { name: 'Keyboard shortcuts' }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'Formatting Toolbar',
+      items: [
+        { name: 'Undo' }, { name: 'Redo' }, { name: 'Print' }, { name: 'Spelling and grammar check' }, { name: 'Paint format' }, { name: 'Zoom' },
+        { name: 'Styles dropdown', children: [ { name: 'Normal text' }, { name: 'Title' }, { name: 'Subtitle' }, { name: 'Heading 1' }, { name: 'Heading 2' }, { name: 'Heading 3' }, { name: 'Heading 4' }, { name: 'Heading 5' }, { name: 'Heading 6' } ] },
+        { name: 'Font family' }, { name: 'Font size' }, { name: 'Bold' }, { name: 'Italic' }, { name: 'Underline' }, { name: 'Text color' }, { name: 'Text highlight color' }, { name: 'Insert link' }, { name: 'Add comment' }, { name: 'Insert image' },
+        { name: 'Align', children: [ { name: 'Left align' }, { name: 'Center align' }, { name: 'Right align' }, { name: 'Justify' } ] },
+        { name: 'Line spacing', children: [ { name: 'Single' }, { name: '1.15' }, { name: '1.5' }, { name: 'Double' }, { name: 'Custom spacing' } ] },
+        { name: 'Checklist' }, { name: 'Bulleted list' }, { name: 'Numbered list' }, { name: 'Decrease indent' }, { name: 'Increase indent' }, { name: 'Clear formatting' },
+        { name: 'Editing mode selector', children: [ { name: 'Editing' }, { name: 'Suggesting' }, { name: 'Viewing' } ] }
+      ]
+    }
+  ];
   // Page settings
   pagePreset: 'A4' | 'Letter' | 'Legal' | 'A3' = 'A4';
   orientation: 'portrait' | 'landscape' = 'portrait';
