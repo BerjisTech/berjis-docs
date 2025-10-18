@@ -84,29 +84,51 @@
 
 <div #editorMainPane class="h-[calc(100vh-155px)] mt-2 overflow-hidden z-[1]">
   <div *ngIf="showRuler" #horizontalScale class="h-[30px] ms-[30px] border-b border-slate-400 flex items-center justify-center">
-    <div class="relative" [style.width]="'210mm'" [style.height]="'30px'">
+    <div #hRuler class="relative" [style.width]="pageWidthMm + 'mm'" [style.height]="'30px'">
       <div class="absolute left-0 top-0 right-0 h-full flex">
         <div *ngFor="let t of hTicks; let i = index" [style.width]="'10mm'" class="relative">
           <div class="absolute bottom-0 left-0 w-px bg-slate-500" [style.height]="(i % 5 === 0) ? '100%' : '50%'"></div>
           <div *ngIf="i % 5 === 0" class="absolute bottom-0 left-1 text-[10px] text-slate-600">{{ i }}mm</div>
         </div>
       </div>
+      <!-- Horizontal margin handles overlay -->
+      <div class="absolute inset-0 pointer-events-none">
+        <!-- Left margin area (light) -->
+        <div class="absolute top-0 bottom-0 bg-red-200/30" [style.width.px]="marginLeftPx()"></div>
+        <!-- Right margin area (light) -->
+        <div class="absolute top-0 bottom-0 bg-red-200/30" [style.width.px]="marginRightPx()" [style.left.px]="pageWidthPx() - marginRightPx()"></div>
+        <!-- Left handle -->
+        <div class="absolute top-0 bottom-0 w-[3px] bg-red-600 pointer-events-auto cursor-ew-resize" [style.left.px]="marginLeftPx()" (mousedown)="onMarginDragStart('left', $event)"></div>
+        <!-- Right handle -->
+        <div class="absolute top-0 bottom-0 w-[3px] bg-red-600 pointer-events-auto cursor-ew-resize" [style.left.px]="pageWidthPx() - marginRightPx()" (mousedown)="onMarginDragStart('right', $event)"></div>
+      </div>
     </div>
   </div>
   <div class="h-[calc(100vh-186px)] w-full overflow-hidden flex items-start justify-start">
     <div *ngIf="showRuler" #verticalScale class="w-[30px] border-r h-full border-slate-400 relative">
-      <div class="absolute top-0 left-0 right-0">
+      <div #vRuler class="absolute top-0 left-0 right-0">
         <div *ngFor="let t of vTicks; let i = index" [style.height]="'10mm'" class="relative">
           <div class="absolute left-0 top-0 h-px bg-slate-500" [style.width]="(i % 5 === 0) ? '100%' : '50%'"></div>
           <div *ngIf="i % 5 === 0" class="absolute left-0 top-0 -translate-y-1 text-[10px] text-slate-600">{{ i }}mm</div>
         </div>
+      </div>
+      <!-- Vertical margin handles overlay -->
+      <div class="absolute inset-0 pointer-events-none">
+        <!-- Top margin area (light) -->
+        <div class="absolute left-0 right-0 bg-red-200/30" [style.height.px]="marginTopPx()"></div>
+        <!-- Bottom margin area (light) -->
+        <div class="absolute left-0 right-0 bg-red-200/30" [style.height.px]="marginBottomPx()" [style.top.px]="pageHeightPx() - marginBottomPx()"></div>
+        <!-- Top handle -->
+        <div class="absolute left-0 right-0 h-[3px] bg-red-600 pointer-events-auto cursor-ns-resize" [style.top.px]="marginTopPx()" (mousedown)="onMarginDragStart('top', $event)"></div>
+        <!-- Bottom handle -->
+        <div class="absolute left-0 right-0 h-[3px] bg-red-600 pointer-events-auto cursor-ns-resize" [style.top.px]="pageHeightPx() - marginBottomPx()" (mousedown)="onMarginDragStart('bottom', $event)"></div>
       </div>
     </div>
     <div class="h-full w-[calc(100%-30px)] bg-blue-100 flex items-center justify-center">
       <div class="w-[300px] h-full"></div>
       <div #pages class="_w-[calc(100%-600px)] overflow-x-hidden overflow-y-auto _flex-grow h-full p-8 "
         [style.transform]="scale !== 1 ? 'scale(' + scale + ')' : ''" [style.transformOrigin]="'top left'">
-        <div #pagesContainer class="flex flex-col items-center gap-6" (input)="onEditorInput()">
+        <div #pagesContainer class="flex flex-col items-center gap-6" (input)="onEditorInput()" (keydown)="onEditorKeydown($event)" (paste)="onEditorPaste($event)">
           <div class="page bg-white outline-none w-[210mm] h-[297mm] p-8 overflow-hidden shadow" contenteditable="true" spellcheck="true"></div>
         </div>
       </div>
@@ -159,4 +181,48 @@
       <button class="px-3 py-1 bg-blue-600 text-white rounded" (click)="confirmRename()">Save</button>
     </div>
   </div>
+</div>
+
+<!-- Page Setup Modal -->
+<div *ngIf="pageSetupModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+  <div class="bg-white rounded shadow w-[520px] p-4">
+    <div class="text-lg font-semibold mb-2">Page Setup</div>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="text-sm text-gray-600">Size</label>
+        <select class="w-full border rounded px-2 py-1 mt-1" [(ngModel)]="pagePreset">
+          <option value="A4">A4 (210 x 297 mm)</option>
+          <option value="Letter">Letter (216 x 279 mm)</option>
+          <option value="Legal">Legal (216 x 356 mm)</option>
+          <option value="A3">A3 (297 x 420 mm)</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600">Orientation</label>
+        <select class="w-full border rounded px-2 py-1 mt-1" [(ngModel)]="orientation">
+          <option value="portrait">Portrait</option>
+          <option value="landscape">Landscape</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600">Margins</label>
+        <select class="w-full border rounded px-2 py-1 mt-1" [(ngModel)]="marginPreset">
+          <option value="narrow">Narrow (12.7 mm)</option>
+          <option value="normal">Normal (25.4 mm)</option>
+          <option value="wide">Wide (31.75 mm)</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600">Preview</label>
+        <div class="border rounded h-[120px] flex items-center justify-center text-xs text-gray-600">
+          {{ pagePreset }} • {{ orientation }} • {{ marginPreset }}
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 mt-4">
+      <button class="px-3 py-1 border rounded" (click)="closePageSetup()">Cancel</button>
+      <button class="px-3 py-1 bg-blue-600 text-white rounded" (click)="confirmPageSetup()">Apply</button>
+    </div>
+  </div>
+  
 </div>

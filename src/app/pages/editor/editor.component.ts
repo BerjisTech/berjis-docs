@@ -14,8 +14,9 @@ export class EditorPageComponent implements OnInit {
   @ViewChild('pagesContainer', { static: true }) pagesContainerRef!: ElementRef<HTMLDivElement>;
   doc: Doc | null = null;
   pendingSave?: any;
-  hTicks = Array.from({ length: 21 }); // 0..210mm every 10mm
-  vTicks = Array.from({ length: 30 }); // 0..297mm approx every 10mm
+  // Ruler ticks (10mm spacing), computed from current page size
+  hTicks = Array.from({ length: 21 });
+  vTicks = Array.from({ length: 30 });
   showRuler = true;
   scale = 1;
   openModal = false;
@@ -26,6 +27,25 @@ export class EditorPageComponent implements OnInit {
   renameTitle = '';
   linkModal = false;
   linkUrl = '';
+  // Page settings
+  pagePreset: 'A4' | 'Letter' | 'Legal' | 'A3' = 'A4';
+  orientation: 'portrait' | 'landscape' = 'portrait';
+  marginPreset: 'narrow' | 'normal' | 'wide' | 'custom' = 'normal';
+  pageSetupModal = false;
+  // Effective page size in mm (after orientation applied)
+  pageWidthMm = 210;
+  pageHeightMm = 297;
+  // Margin values in mm (top,right,bottom,left)
+  margins = { top: 25.4, right: 25.4, bottom: 25.4, left: 25.4 };
+  // Rulers
+  @ViewChild('horizontalScale', { static: false }) horizontalScaleRef?: ElementRef<HTMLElement>;
+  @ViewChild('verticalScale', { static: false }) verticalScaleRef?: ElementRef<HTMLElement>;
+  @ViewChild('hRuler', { static: false }) hRulerRef?: ElementRef<HTMLElement>;
+  @ViewChild('vRuler', { static: false }) vRulerRef?: ElementRef<HTMLElement>;
+  // Drag state
+  private dragging: null | 'left' | 'right' | 'top' | 'bottom' = null;
+  private dragMove?: (e: MouseEvent) => void;
+  private dragUp?: (e: MouseEvent) => void;
   contextMenus: { name: string, menus: { icon: string, name: string, action: string }[] }[] = [
     { name: 'File', menus: [
       { icon: '', name: 'New', action: 'new' },
@@ -44,9 +64,22 @@ export class EditorPageComponent implements OnInit {
       { icon: '', name: 'Toggle ruler', action: 'toggleRuler' },
       { icon: '', name: 'Zoom 100%', action: 'zoom100' }
     ]},
+    { name: 'Page', menus: [
+      { icon: '', name: 'A4', action: 'size:A4' },
+      { icon: '', name: 'Letter', action: 'size:Letter' },
+      { icon: '', name: 'Legal', action: 'size:Legal' },
+      { icon: '', name: 'A3', action: 'size:A3' },
+      { icon: '', name: 'Portrait', action: 'orient:portrait' },
+      { icon: '', name: 'Landscape', action: 'orient:landscape' },
+      { icon: '', name: 'Margins: Narrow', action: 'margins:narrow' },
+      { icon: '', name: 'Margins: Normal', action: 'margins:normal' },
+      { icon: '', name: 'Margins: Wide', action: 'margins:wide' },
+      { icon: '', name: 'Page setup…', action: 'pageSetup' },
+    ]},
     { name: 'Insert', menus: [
       { icon: '', name: 'Image', action: 'insertImage' },
-      { icon: '', name: 'Table', action: 'insertTable' }
+      { icon: '', name: 'Table', action: 'insertTable' },
+      { icon: '', name: 'Page break', action: 'pageBreak' }
     ]},
     { name: 'Help', menus: [
       { icon: '', name: 'Docs help', action: 'help' }
@@ -54,6 +87,9 @@ export class EditorPageComponent implements OnInit {
   ]
 
   onMenu(action: string) {
+    if (action.startsWith('size:')) { this.setPageSize(action.split(':')[1] as any); return; }
+    if (action.startsWith('orient:')) { this.setOrientation(action.split(':')[1] as any); return; }
+    if (action.startsWith('margins:')) { this.setMargins(action.split(':')[1] as any); return; }
     switch (action) {
       case 'new': this.router.navigate(['/editor', 'new']); break;
       case 'open': this.showOpen(); break;
@@ -67,7 +103,9 @@ export class EditorPageComponent implements OnInit {
       case 'zoom100': this.scale = 1; break;
       case 'insertImage': this.insertImage(); break;
       case 'insertTable': this.insertTable(); break;
+      case 'pageBreak': this.insertPageBreak(); break;
       case 'insertLink': this.showLink(); break;
+      case 'pageSetup': this.openPageSetup(); break;
       default: break;
     }
   }
@@ -142,6 +180,9 @@ export class EditorPageComponent implements OnInit {
         }
         // Ensure there is at least one page and move any orphan nodes into it
         this.ensurePageStructure();
+        this.applyPageStyles();
+        this.updateRulerTicks();
+        this.updatePrintCss();
         this.paginate();
       }
     });
@@ -153,6 +194,7 @@ export class EditorPageComponent implements OnInit {
     this.ensurePageStructure();
     this.normalizeAllPages();
     this.paginate();
+    this.applyPageStyles(); // keep styles consistent if new pages were added
     this.doc.content = this.pagesContainerRef.nativeElement.innerHTML;
     this.queueSave();
   }
@@ -179,6 +221,74 @@ export class EditorPageComponent implements OnInit {
   insertLink() { const url = prompt('Enter URL'); if (url) this.exec('createLink', url); }
   unlink() { this.exec('unlink'); }
   resetFormatting() { this.exec('removeFormat'); }
+
+  onEditorKeydown(e: KeyboardEvent) {
+    const sel = document.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    let node: Node | null = range.startContainer;
+    if (!node) return;
+    let el: HTMLElement | null = (node.nodeType === Node.ELEMENT_NODE ? node as HTMLElement : (node.parentElement as HTMLElement));
+    const page = el ? (el.closest('.page') as HTMLElement | null) : null;
+    if (!page) return;
+
+    // Enter: allow default, then let paginate move overflow into the next page
+    if (e.key === 'Enter') {
+      setTimeout(() => { this.paginate(); this.onEditorInput(); }, 0);
+      return;
+    }
+
+    if (e.key === 'Backspace') {
+      if (!range.collapsed) return; // let default delete selection
+      // Determine if caret is at start of the page's first block
+      const firstBlock = this.findFirstBlock(page);
+      if (!firstBlock) return;
+      const startRange = document.createRange();
+      startRange.selectNodeContents(firstBlock);
+      startRange.collapse(true);
+      const atStart = range.compareBoundaryPoints(Range.START_TO_START, startRange) === 0;
+      if (!atStart) return;
+      // At very start of page. If previous page exists, move caret there.
+      const prev = (page.previousElementSibling as HTMLElement) && (page.previousElementSibling as HTMLElement).classList.contains('page')
+        ? (page.previousElementSibling as HTMLElement)
+        : null;
+      if (!prev) return; // first page: do nothing
+      e.preventDefault();
+      // Place caret at end of previous page's last block
+      let lastBlock = this.findLastBlock(prev) as HTMLElement | null;
+      if (!lastBlock) {
+        lastBlock = document.createElement('div');
+        lastBlock.appendChild(document.createElement('br'));
+        prev.appendChild(lastBlock);
+      }
+      const newRange = document.createRange();
+      newRange.selectNodeContents(lastBlock);
+      newRange.collapse(false);
+      sel.removeAllRanges(); sel.addRange(newRange);
+      this.paginate();
+      // no onEditorInput here since content didn't change
+    }
+  }
+
+  onEditorPaste(e: ClipboardEvent) {
+    // Default to plain text paste to avoid huge external HTML trees causing hangs
+    e.preventDefault();
+    const text = e.clipboardData?.getData('text/plain') || '';
+    if (text) {
+      try { document.execCommand('insertText', false, text); }
+      catch { const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return; const range = sel.getRangeAt(0); range.deleteContents(); range.insertNode(document.createTextNode(text)); }
+      this.onEditorInput();
+      return;
+    }
+    const html = e.clipboardData?.getData('text/html') || '';
+    if (html) {
+      // Fallback: strip tags to text
+      const stripped = stripTags(html);
+      try { document.execCommand('insertText', false, stripped); }
+      catch { const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return; const range = sel.getRangeAt(0); range.deleteContents(); range.insertNode(document.createTextNode(stripped)); }
+      this.onEditorInput();
+    }
+  }
 
   private createPage(): HTMLDivElement {
     const page = document.createElement('div');
@@ -229,7 +339,20 @@ export class EditorPageComponent implements OnInit {
         if (!next) { next = this.createPage(); container.appendChild(next); pages = this.getPages(); }
         const last = this.findLastBlock(page);
         if (!last) break;
-        next.insertBefore(last, next.firstChild);
+        // If the last block is too tall to ever fit, try to split it
+        const lastTop = last.getBoundingClientRect().top;
+        const pageTop = page.getBoundingClientRect().top;
+        const available = page.clientHeight - (lastTop - pageTop);
+        if (last.offsetHeight > available && this.canSplitBlock(last)) {
+          const split = this.splitBlock(last as HTMLElement, available);
+          if (split) {
+            next.insertBefore(split, next.firstChild);
+          } else {
+            next.insertBefore(last, next.firstChild);
+          }
+        } else {
+          next.insertBefore(last, next.firstChild);
+        }
       }
     }
 
@@ -242,6 +365,8 @@ export class EditorPageComponent implements OnInit {
         moved = false;
         const first = this.findFirstBlock(page);
         if (!first) break;
+        // Do not pull back an explicit page-start marker paragraph
+        if (first.hasAttribute && (first as HTMLElement).hasAttribute('data-page-start')) break;
         prev.appendChild(first);
         if (prev.scrollHeight > prev.clientHeight + 1) { // overflowed, undo
           page.insertBefore(first, page.firstChild);
@@ -256,6 +381,59 @@ export class EditorPageComponent implements OnInit {
         }
       }
     }
+  }
+
+  private canSplitBlock(el: Element): boolean {
+    const tag = (el.tagName || '').toUpperCase();
+    return tag === 'DIV' || tag === 'P' || tag === 'BLOCKQUOTE' || tag === 'LI';
+  }
+
+  private splitBlock(block: HTMLElement, availablePx: number): HTMLElement | null {
+    // Clone a new block with same class/style, move trailing children/text until the original fits available space
+    const clone = document.createElement(block.tagName.toLowerCase());
+    clone.className = block.className;
+    clone.setAttribute('style', block.getAttribute('style') || '');
+    // Move nodes from the end to the clone until the block fits into availablePx
+    let safety = 0;
+    const fits = () => block.getBoundingClientRect().height <= availablePx + 1;
+
+    // If single large text node, binary split by characters
+    if (block.childNodes.length === 1 && block.firstChild?.nodeType === Node.TEXT_NODE) {
+      const textNode = block.firstChild as Text;
+      const full = textNode.textContent || '';
+      let lo = 0, hi = full.length;
+      // Ensure a <br> at end to preserve line
+      if (!block.lastChild || block.lastChild.nodeName !== 'BR') { block.appendChild(document.createElement('br')); }
+      // Find largest head that fits
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        textNode.textContent = full.slice(0, mid);
+        if (fits()) lo = mid; else hi = mid - 1;
+      }
+      textNode.textContent = full.slice(0, lo);
+      const tailText = full.slice(lo);
+      if (tailText.length === 0) return null;
+      clone.textContent = tailText;
+      return clone;
+    }
+
+    while (!fits() && block.childNodes.length > 0 && safety++ < 2000) {
+      const child = block.lastChild as Node;
+      if (child.nodeType === Node.TEXT_NODE) {
+        const text = child.textContent || '';
+        if (text.length <= 1) { clone.insertBefore(child, clone.firstChild); continue; }
+        // Move entire text node to clone and continue
+        clone.insertBefore(child, clone.firstChild);
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        const ce = child as HTMLElement;
+        clone.insertBefore(ce, clone.firstChild);
+      } else {
+        clone.insertBefore(child, clone.firstChild);
+      }
+    }
+    // If nothing moved, give up
+    if (clone.childNodes.length === 0) return null;
+    return clone;
   }
 
   private findLastBlock(page: HTMLElement): HTMLElement | null {
@@ -298,6 +476,175 @@ export class EditorPageComponent implements OnInit {
       // Move any non-page node into the first page
       first.appendChild(n);
     }
+  }
+
+  // Page controls
+  private sizePresets: Record<string, { w: number, h: number }> = {
+    A4: { w: 210, h: 297 },
+    Letter: { w: 216, h: 279 },
+    Legal: { w: 216, h: 356 },
+    A3: { w: 297, h: 420 },
+  };
+  private marginPresets: Record<'narrow'|'normal'|'wide', number> = {
+    narrow: 12.7,
+    normal: 25.4,
+    wide: 31.75,
+  };
+
+  private effectiveSizeMm() {
+    const s = this.sizePresets[this.pagePreset];
+    if (!s) return { w: this.pageWidthMm, h: this.pageHeightMm };
+    return this.orientation === 'portrait' ? { w: s.w, h: s.h } : { w: s.h, h: s.w };
+  }
+
+  private applyPageStyles() {
+    const { w, h } = this.effectiveSizeMm();
+    this.pageWidthMm = w; this.pageHeightMm = h;
+    const pad = `${this.margins.top}mm ${this.margins.right}mm ${this.margins.bottom}mm ${this.margins.left}mm`;
+    for (const page of this.getPages()) {
+      page.style.width = `${w}mm`;
+      page.style.height = `${h}mm`;
+      page.style.padding = pad;
+    }
+  }
+
+  private updateRulerTicks() {
+    const { w, h } = this.effectiveSizeMm();
+    this.hTicks = Array.from({ length: Math.ceil(w / 10) + 1 });
+    this.vTicks = Array.from({ length: Math.ceil(h / 10) + 1 });
+  }
+
+  private getXRulerRect() {
+    const el = this.hRulerRef?.nativeElement || this.horizontalScaleRef?.nativeElement;
+    return el?.getBoundingClientRect();
+  }
+  private getYRulerRect() {
+    const el = this.vRulerRef?.nativeElement || this.verticalScaleRef?.nativeElement;
+    return el?.getBoundingClientRect();
+  }
+  pageWidthPx(): number { const r = this.getXRulerRect(); return r ? r.width : this.pageWidthMm * 3.78; }
+  pageHeightPx(): number { const r = this.getYRulerRect(); return r ? r.height : this.pageHeightMm * 3.78; }
+  marginLeftPx(): number { return this.margins.left * (this.pageWidthPx() / this.pageWidthMm); }
+  marginRightPx(): number { return this.margins.right * (this.pageWidthPx() / this.pageWidthMm); }
+  marginTopPx(): number { return this.margins.top * (this.pageHeightPx() / this.pageHeightMm); }
+  marginBottomPx(): number { return this.margins.bottom * (this.pageHeightPx() / this.pageHeightMm); }
+
+  onMarginDragStart(which: 'left'|'right'|'top'|'bottom', ev: MouseEvent) {
+    ev.preventDefault(); ev.stopPropagation();
+    this.dragging = which; this.marginPreset = 'custom';
+    this.dragMove = (e: MouseEvent) => this.onMarginDragMove(e);
+    this.dragUp = (e: MouseEvent) => this.onMarginDragEnd(e);
+    window.addEventListener('mousemove', this.dragMove!);
+    window.addEventListener('mouseup', this.dragUp!);
+  }
+  private onMarginDragMove(e: MouseEvent) {
+    if (!this.dragging) return;
+    const minContent = 10; // mm
+    if (this.dragging === 'left' || this.dragging === 'right') {
+      const rect = this.getXRulerRect(); if (!rect) return;
+      const ratio = this.pageWidthMm / rect.width;
+      const mmFromLeft = (e.clientX - rect.left) * ratio;
+      if (this.dragging === 'left') {
+        const max = Math.max(0, this.pageWidthMm - this.margins.right - minContent);
+        this.margins.left = Math.min(Math.max(0, mmFromLeft), max);
+      } else {
+        const mmFromRight = this.pageWidthMm - mmFromLeft;
+        const max = Math.max(0, this.pageWidthMm - this.margins.left - minContent);
+        this.margins.right = Math.min(Math.max(0, mmFromRight), max);
+      }
+    } else {
+      const rect = this.getYRulerRect(); if (!rect) return;
+      const ratio = this.pageHeightMm / rect.height;
+      const mmFromTop = (e.clientY - rect.top) * ratio;
+      if (this.dragging === 'top') {
+        const max = Math.max(0, this.pageHeightMm - this.margins.bottom - minContent);
+        this.margins.top = Math.min(Math.max(0, mmFromTop), max);
+      } else {
+        const mmFromBottom = this.pageHeightMm - mmFromTop;
+        const max = Math.max(0, this.pageHeightMm - this.margins.top - minContent);
+        this.margins.bottom = Math.min(Math.max(0, mmFromBottom), max);
+      }
+    }
+    this.applyPageStyles();
+    this.paginate();
+  }
+  private onMarginDragEnd(_e: MouseEvent) {
+    window.removeEventListener('mousemove', this.dragMove!);
+    window.removeEventListener('mouseup', this.dragUp!);
+    this.dragging = null; this.dragMove = undefined; this.dragUp = undefined;
+    this.onEditorInput(); // persist document HTML with updated page padding
+  }
+
+  private updatePrintCss() {
+    const { w, h } = this.effectiveSizeMm();
+    const id = 'print-page-size';
+    let styleEl = document.getElementById(id) as HTMLStyleElement | null;
+    const css = `@media print{ @page{ size: ${w}mm ${h}mm; margin:0; } }`;
+    if (!styleEl) {
+      styleEl = document.createElement('style'); styleEl.id = id; styleEl.type = 'text/css'; styleEl.textContent = css; document.head.appendChild(styleEl);
+    } else { styleEl.textContent = css; }
+  }
+
+  setPageSize(preset: 'A4'|'Letter'|'Legal'|'A3') {
+    this.pagePreset = preset;
+    this.applyPageStyles();
+    this.updateRulerTicks();
+    this.updatePrintCss();
+    this.paginate();
+    this.onEditorInput();
+  }
+  setOrientation(o: 'portrait'|'landscape') {
+    this.orientation = o;
+    this.applyPageStyles();
+    this.updateRulerTicks();
+    this.updatePrintCss();
+    this.paginate();
+    this.onEditorInput();
+  }
+  setMargins(preset: 'narrow'|'normal'|'wide') {
+    this.marginPreset = preset;
+    const v = this.marginPresets[preset];
+    this.margins = { top: v, right: v, bottom: v, left: v };
+    this.applyPageStyles();
+    this.paginate();
+    this.onEditorInput();
+  }
+
+  openPageSetup() { this.pageSetupModal = true; }
+  closePageSetup() { this.pageSetupModal = false; }
+  confirmPageSetup() {
+    this.applyPageStyles();
+    this.updateRulerTicks();
+    this.updatePrintCss();
+    this.paginate();
+    this.pageSetupModal = false;
+    this.onEditorInput();
+  }
+
+  private insertPageBreak() {
+    const sel = document.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    // Find the block element containing the caret
+    let node: Node | null = range.startContainer;
+    while (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement as HTMLElement;
+    let block = node as HTMLElement | null;
+    while (block && block.parentElement && !block.parentElement.classList.contains('page')) block = block.parentElement;
+    const currentPage = block?.closest('.page') as HTMLElement | null;
+    if (!currentPage) return;
+    const container = this.pagesContainerRef.nativeElement;
+    const newPage = this.createPage();
+    container.insertBefore(newPage, currentPage.nextSibling);
+    // Move following siblings after the block into the new page
+    if (block && block.parentElement === currentPage) {
+      let mover = block.nextSibling;
+      const items: Node[] = [];
+      while (mover) { const next = mover.nextSibling; items.push(mover); mover = next; }
+      for (const it of items) newPage.appendChild(it);
+    }
+    this.applyPageStyles();
+    this.paginate();
+    this.onEditorInput();
   }
 }
 
