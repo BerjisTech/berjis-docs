@@ -75,6 +75,26 @@
         <a [routerLink]="['/editor', d.id]" class="text-blue-600 text-sm">Open</a>
       </a>
     </div>
+
+    <div class="mt-10">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex-grow font-bold text-lg">Trash (last 30 days)</div>
+      </div>
+      <div class="w-full grid grid-cols-5 auto-rows-[200px] gap-3" *ngIf="trash.length; else noTrash">
+        <div *ngFor="let d of trash" class="shadow rounded bg-slate-50 flex flex-col p-2">
+          <div class="font-medium truncate">{{ d.title || 'Untitled' }}</div>
+          <div class="text-xs text-gray-500 mt-1">Deleted {{ d.updatedAt | date:'medium' }}</div>
+          <div class="flex-grow"></div>
+          <div class="flex items-center justify-between">
+            <a [routerLink]="['/editor', d.id]" class="text-blue-600 text-sm">Open</a>
+            <button class="text-sm text-green-700" (click)="restore(d)">Restore</button>
+          </div>
+        </div>
+      </div>
+      <ng-template #noTrash>
+        <div class="text-sm text-gray-500">No items in trash.</div>
+      </ng-template>
+    </div>
   </div>
 
   <!-- Loading -->

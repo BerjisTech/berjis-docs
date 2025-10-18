@@ -17,12 +17,18 @@ export class HomePageComponent {
   get lastError() { return this.docs.lastError; }
   authed: boolean | null = null;
   recents: Doc[] = [];
+  trash: Doc[] = [];
   constructor(private api: ApiService, private docs: DocsService) { this.init(); }
   async init() {
     try {
       const res = await this.api.ensureAuth();
       this.authed = !!res?.data?.valid;
-      if (this.authed) { this.recents = await this.docs.list(['active']); }
+      if (this.authed) {
+        this.recents = await this.docs.list(['active']);
+        this.trash = await this.docs.listTrashRecent();
+      }
     } catch { this.authed = false; }
   }
+
+  async restore(d: Doc){ await this.docs.restore(d.id); this.recents = await this.docs.list(['active']); this.trash = await this.docs.listTrashRecent(); }
 }

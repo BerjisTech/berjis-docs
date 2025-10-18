@@ -22,10 +22,10 @@
         <ng-container *ngIf="docsToolBar && docsToolBar[0]">
           <ng-template #submenu let-items>
             <div class="bg-white border border-slate-200 rounded shadow-lg min-w-[220px] py-1">
-              <div *ngFor="let child of items" class="px-3 py-1 hover:bg-slate-100 relative group">
+              <div *ngFor="let child of items" class="px-3 py-1 hover:bg-slate-100 relative group" (click)="!child.children && onDocsMenuClick(child.name); $event.stopPropagation()">
                 <span>{{ child.name }}</span>
                 <span *ngIf="child.children" class="absolute right-2">▶</span>
-                <div *ngIf="child.children" class="hidden group-hover:block absolute top-0 left-full ml-1 z-[60000]">
+                <div *ngIf="child.children" class="hidden group-hover:block absolute top-0 left-full z-[60000]">
                   <ng-container *ngTemplateOutlet="submenu; context: {$implicit: child.children}"></ng-container>
                 </div>
               </div>

@@ -30,18 +30,30 @@ export class DocsService {
   private persist() { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.cache)); }
   private now() { return new Date().toISOString(); }
 
-  async list(status: DocStatus[] = ['active']): Promise<Doc[]> {
+  async list(status: DocStatus[] = ['active'], opts?: { includeExpiredDeleted?: boolean }): Promise<Doc[]> {
     if (this.preferRemote) {
       try {
         const res = await firstValueFrom(this.http.get<any>(`${API_BASE}/v1/docs`, { params: { status: status.join(',') }, withCredentials: true }));
-        const rows: Doc[] = res?.data || [];
+        let rows: Doc[] = res?.data || [];
+        rows = this.filterDeleted(rows, status, !!opts?.includeExpiredDeleted);
         for (const d of rows) this.cache[d.id] = d; this.persist();
         this.preferRemote = true; this.syncMode = 'remote'; this.lastError = null;
         return rows;
       } catch (e) { this.switchToLocal(e); }
     }
-    return Object.values(this.cache).filter(d => status.includes(d.status)).sort((a,b)=> (b.updatedAt||'').localeCompare(a.updatedAt||''));
+    let rows = Object.values(this.cache).filter(d => status.includes(d.status));
+    rows = this.filterDeleted(rows, status, !!opts?.includeExpiredDeleted);
+    return rows.sort((a,b)=> (b.updatedAt||'').localeCompare(a.updatedAt||''));
   }
+
+  private filterDeleted(rows: Doc[], status: DocStatus[], includeExpired: boolean): Doc[] {
+    if (!status.includes('deleted') || includeExpired) return rows;
+    const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    return rows.filter(d => d.status !== 'deleted' || (now - Date.parse(d.updatedAt || d.createdAt)) <= THIRTY_DAYS);
+  }
+
+  async listTrashRecent(): Promise<Doc[]> { return this.list(['deleted']); }
 
   get(id: string) { return this.cache[id]; }
 
@@ -91,4 +103,3 @@ export class DocsService {
   private switchToLocal(e?: any) { this.preferRemote = false; this.syncMode = 'local'; this.lastError = e?.message || 'offline, saving locally'; }
   private uuid(): string { return 'd_' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
 }
-

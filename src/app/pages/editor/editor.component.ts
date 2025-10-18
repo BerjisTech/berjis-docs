@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -409,29 +409,32 @@ export class EditorPageComponent implements OnInit {
   constructor(private route: ActivatedRoute, public docs: DocsService, private router: Router) { }
 
   async ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id') || 'new';
+    this.route.paramMap.subscribe(async (pm) => {
+      const id = pm.get('id') || 'new';
+      await this.loadDoc(id);
+    });
+  }
+
+  private async loadDoc(id: string) {
+    if (this.pagesContainerRef) this.pagesContainerRef.nativeElement.innerHTML = '';
     this.doc = { id, title: '', content: '', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     if (id !== 'new') {
       const existing = this.docs.get(id) || await this.docs.fetch(id);
       if (existing) this.doc = existing; else { this.router.navigate(['/']); return; }
     }
-    setTimeout(() => {
-      if (!this.doc) return;
-      if (this.pagesContainerRef) {
-        const el = this.pagesContainerRef.nativeElement;
-        const content = this.doc.content || '';
-        if (content && content.trim().length > 0) {
-          // Load saved HTML (may be raw blocks without page wrappers)
-          el.innerHTML = content;
-        }
-        // Ensure there is at least one page and move any orphan nodes into it
-        this.ensurePageStructure();
-        this.applyPageStyles();
-        this.updateRulerTicks();
-        this.updatePrintCss();
-        this.paginate();
-      }
-    });
+    setTimeout(() => this.renderCurrentDoc());
+  }
+
+  private renderCurrentDoc() {
+    if (!this.doc || !this.pagesContainerRef) return;
+    const el = this.pagesContainerRef.nativeElement;
+    const content = this.doc.content || '';
+    el.innerHTML = content || '';
+    this.ensurePageStructure();
+    this.applyPageStyles();
+    this.updateRulerTicks();
+    this.updatePrintCss();
+    this.paginate();
   }
 
   onTitleChange() { this.queueSave(); }
@@ -586,6 +589,320 @@ export class EditorPageComponent implements OnInit {
       case 'justify': this.exec('justifyFull'); break;
       default: break;
     }
+  }
+  @HostListener('document:click') onDocClick() { this.openMenuIndex = null; }
+
+  // Menu bar handler by item name
+  onDocsMenuClick(name: string) {
+    const n = (name || '').toLowerCase();
+    // File
+    if (n === 'new document') { this.router.navigate(['/editor', 'new']); return; }
+    if (n === 'open') { this.showOpen(); return; }
+    if (n === 'make a copy') { this.makeCopy(); return; }
+    if (n === 'rename') { this.showRename(); return; }
+    if (n === 'page setup') { this.openPageSetup(); return; }
+    if (n === 'print') { window.print(); return; }
+    if (n === 'share with others') { this.shareDoc(); return; }
+    if (n === 'publish to web') { this.downloadAs('html'); return; }
+    if (n === 'email as attachment') { this.emailDoc('attach'); return; }
+    if (n === 'email collaborators') { this.emailDoc('collab'); return; }
+    if (n.includes('pdf document')) { this.downloadAs('pdf'); return; }
+    if (n.includes('plain text')) { this.downloadAs('txt'); return; }
+    if (n.includes('web page')) { this.downloadAs('html'); return; }
+    if (n.includes('rich text format')) { this.downloadAs('rtf'); return; }
+    if (n.includes('microsoft word')) { this.downloadAs('docx'); return; }
+    if (n.includes('opendocument')) { this.downloadAs('odt'); return; }
+    if (n.includes('epub')) { this.downloadAs('epub'); return; }
+    if (n === 'move') { this.moveDocPrompt(); return; }
+    if (n === 'add shortcut to drive') { this.addShortcutPrompt(); return; }
+    if (n === 'move to trash') { this.trashDoc(); return; }
+    if (n === 'version history' || n === 'name current version' || n === 'see version history') { this.showVersionHistory(); return; }
+    if (n === 'make available offline') { alert('Offline is automatic: saves locally when server unreachable.'); return; }
+    if (n === 'details') { this.showDetails(); return; }
+    if (n === 'language') { this.languagePrompt(); return; }
+
+    // Edit
+    if (n === 'undo') { document.execCommand('undo'); return; }
+    if (n === 'redo') { document.execCommand('redo'); return; }
+    if (n === 'cut') { document.execCommand('cut'); return; }
+    if (n === 'copy') { document.execCommand('copy'); return; }
+    if (n === 'paste') { alert('Press Ctrl+V to paste.'); return; }
+    if (n === 'paste without formatting') { alert('Paste plain text: Press Ctrl+V now.'); return; }
+    if (n === 'select all') { document.execCommand('selectAll'); return; }
+    if (n === 'delete') { this.deleteSelection(); return; }
+    if (n === 'find and replace') { this.openFind(); return; }
+    if (n === 'select all matching text') { this.selectMatching('text'); return; }
+    if (n === 'select all matching images') { this.selectMatching('images'); return; }
+
+    // View
+    if (n === 'editing') { this.setMode('editing'); return; }
+    if (n === 'suggesting') { this.setMode('suggesting'); return; }
+    if (n === 'viewing') { this.setMode('viewing'); return; }
+    if (n === 'show print layout') { this.togglePrintLayout(); return; }
+    if (n === 'show ruler') { this.showRuler = !this.showRuler; return; }
+    if (n === 'show outline' || n === 'show document outline') { this.toggleOutline(); return; }
+    if (n === 'show equation toolbar') { alert('Equation toolbar not implemented.'); return; }
+    if (n === 'show section breaks') { this.toggleSectionBreaks(); return; }
+    if (n === 'show non-printing characters') { this.toggleNonPrinting(); return; }
+    if (n === 'full screen') { this.enterFullscreen(); return; }
+
+    // Insert
+    if (n === 'upload from computer') { this.insertImage(); return; }
+    if (n === 'by url') { this.insertImageByUrl(); return; }
+    if (n === 'search the web') { this.openWebSearch(); return; }
+    if (n === 'drive' || n === 'photos' || n === 'camera') { this.insertImage(); return; }
+    if (n === 'table') { this.insertTable(); return; }
+    if (n === 'horizontal line') { document.execCommand('insertHorizontalRule'); this.onEditorInput(); return; }
+    if (n === 'link') { this.showLink(); return; }
+    if (n === 'page break') { this.insertPageBreak(); return; }
+    if (n === 'drawing' || n === 'new' || n === 'from drive') { this.insertPlaceholder('Drawing'); return; }
+    if (n === 'chart' || n === 'bar' || n === 'column' || n === 'line' || n === 'pie' || n === 'from sheets') { this.insertPlaceholder('Chart'); return; }
+    if (n === 'emoji') { this.insertPlaceholder('🙂 Emoji'); return; }
+    if (n === 'people') { this.insertChip('people'); return; }
+    if (n === 'file') { this.insertChip('file'); return; }
+    if (n === 'calendar event') { this.insertChip('calendar'); return; }
+    if (n === 'date') { this.insertChip('date'); return; }
+    if (n === 'dropdown') { this.insertChip('dropdown'); return; }
+    if (n === 'footnote') { this.insertPlaceholder('Footnote'); return; }
+    if (n === 'building blocks' || n === 'equation' || n === 'section break (next page)' || n === 'section break (continuous)' || n === 'column break') { this.insertPlaceholder(name); return; }
+    if (n === 'table of contents') { this.insertTableOfContents(); return; }
+    if (n === 'header') { this.insertPlaceholder('Header'); return; }
+    if (n === 'footer') { this.insertPlaceholder('Footer'); return; }
+    if (n === 'page number') { this.insertPlaceholder('[Page Number]'); return; }
+    if (n === 'page count') { this.insertPlaceholder('[Page Count]'); return; }
+    if (n === 'column break') { document.execCommand('insertHTML', false, '<br style="break-after: column;">'); this.onEditorInput(); return; }
+
+    // Format > Text
+    if (n === 'bold') { this.exec('bold'); return; }
+    if (n === 'italic') { this.exec('italic'); return; }
+    if (n === 'underline') { this.exec('underline'); return; }
+    if (n === 'strikethrough') { this.exec('strikeThrough'); return; }
+    if (n === 'superscript') { this.exec('superscript'); return; }
+    if (n === 'subscript') { this.exec('subscript'); return; }
+    if (n === 'lowercase') { this.changeCase('lower'); return; }
+    if (n === 'uppercase') { this.changeCase('upper'); return; }
+    if (n === 'title case') { this.changeCase('title'); return; }
+
+    // Format > Paragraph styles
+    if (n === 'normal text') { this.applyHeading('p'); return; }
+    if (n === 'title') { this.applyHeading('h1'); return; }
+    if (n === 'subtitle') { this.applyHeading('h2'); return; }
+    if (n === 'heading 1') { this.applyHeading('h1'); return; }
+    if (n === 'heading 2') { this.applyHeading('h2'); return; }
+    if (n === 'heading 3') { this.applyHeading('h3'); return; }
+
+    // Format > Align & indent
+    if (n === 'left' || n === 'left align') { this.exec('justifyLeft'); return; }
+    if (n === 'center' || n === 'center align') { this.exec('justifyCenter'); return; }
+    if (n === 'right' || n === 'right align') { this.exec('justifyRight'); return; }
+    if (n === 'justified' || n === 'justify') { this.exec('justifyFull'); return; }
+    if (n === 'increase indent') { this.exec('indent'); return; }
+    if (n === 'decrease indent') { this.exec('outdent'); return; }
+
+    // Format > Line & paragraph spacing
+    if (n === 'single') { this.setLineSpacing('1'); return; }
+    if (n === '1.15') { this.setLineSpacing('1.15'); return; }
+    if (n === '1.5') { this.setLineSpacing('1.5'); return; }
+    if (n === 'double') { this.setLineSpacing('2'); return; }
+
+    // Format > Bullets & numbering
+    if (n === 'numbered list') { this.exec('insertOrderedList'); return; }
+    if (n === 'bulleted list') { this.exec('insertUnorderedList'); return; }
+    if (n === 'checklist') { this.toggleChecklist(); return; }
+
+    // Format > Columns
+    if (n === 'columns') { this.toggleColumns(); return; }
+
+    // Format > Borders & lines (stub)
+    if (n === 'borders & lines') { this.toggleBlockBorder(); return; }
+
+    // Format > Table
+    if (n === 'insert row above') { this.modifyTable('rowAbove'); return; }
+    if (n === 'insert row below') { this.modifyTable('rowBelow'); return; }
+    if (n === 'insert column left') { this.modifyTable('colLeft'); return; }
+    if (n === 'insert column right') { this.modifyTable('colRight'); return; }
+    if (n === 'delete row') { this.modifyTable('delRow'); return; }
+    if (n === 'delete column') { this.modifyTable('delCol'); return; }
+    if (n === 'delete table') { this.modifyTable('delTable'); return; }
+
+    // Format > Image
+    if (n === 'image options') { this.openImageOptions(); return; }
+    if (n === 'reset image') { this.resetSelectedImage(); return; }
+    if (n === 'alt text') { this.setAltTextSelectedImage(); return; }
+
+    // Tools
+    if (n === 'word count') { this.showWordCount(); return; }
+    if (n === 'show spelling suggestions') { this.toggleSpellcheck(); return; }
+    if (n === 'find and replace') { this.openFind(); return; }
+    if (n === 'compare documents') { this.compareDocuments(); return; }
+    if (n === 'review suggested edits') { this.insertPlaceholder('Suggestions panel'); return; }
+    if (n === 'citations') { this.insertPlaceholder('Citations'); return; }
+    if (n === 'explore') { this.exploreSelection(); return; }
+    if (n === 'dictionary' || n === 'personal dictionary') { this.lookupDictionary(); return; }
+    if (n === 'translate document') { this.translateSelection(); return; }
+    if (n === 'voice typing') { this.insertPlaceholder('Voice typing'); return; }
+    if (n === 'linked objects') { this.insertPlaceholder('Linked objects'); return; }
+    if (n === 'preferences') { this.togglePreference(); return; }
+
+    // Default: insert a labeled placeholder so it "does something"
+    this.insertPlaceholder(name);
+  }
+
+  // Edit helpers
+  private selectMatching(kind: 'text'|'images') {
+    // Clear previous temporary highlights
+    const container = this.pagesContainerRef.nativeElement;
+    container.querySelectorAll('[data-temp-highlight]')
+      .forEach(el => { const node = el as HTMLElement; const parent = node.parentNode; while (node.firstChild) parent?.insertBefore(node.firstChild, node); parent?.removeChild(node); });
+    if (kind === 'images') {
+      const imgs = container.querySelectorAll('img');
+      imgs.forEach(img => { (img as HTMLElement).setAttribute('data-temp-highlight','1'); (img as HTMLElement).style.outline = '2px solid #ef4444'; });
+      setTimeout(() => imgs.forEach(img => (img as HTMLElement).style.outline = ''), 1500);
+      alert(`${imgs.length} image(s) highlighted`);
+      return;
+    }
+    const sel = document.getSelection(); if (!sel || !sel.toString()) { alert('Select some text first'); return; }
+    const q = sel.toString();
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const ranges: Range[] = [];
+    let node: Node | null;
+    while (node = walker.nextNode()) {
+      const text = node.textContent || '';
+      let idx = 0;
+      while (q && (idx = (text.toLowerCase()).indexOf(q.toLowerCase(), idx)) !== -1) {
+        const r = document.createRange(); r.setStart(node, idx); r.setEnd(node, idx + q.length); ranges.push(r); idx += q.length;
+      }
+    }
+    ranges.forEach(r => {
+      const span = document.createElement('span'); span.style.background = '#fde68a'; span.setAttribute('data-temp-highlight','1'); r.surroundContents(span);
+    });
+    setTimeout(() => {
+      container.querySelectorAll('[data-temp-highlight]')
+        .forEach(el => { const node = el as HTMLElement; const parent = node.parentNode; while (node.firstChild) parent?.insertBefore(node.firstChild, node); parent?.removeChild(node); });
+    }, 1500);
+    alert(`${ranges.length} match(es) highlighted`);
+  }
+
+  private insertTableOfContents() {
+    const container = this.pagesContainerRef.nativeElement;
+    const headings = container.querySelectorAll('h1,h2,h3,h4,h5,h6');
+    const ol = document.createElement('ol'); ol.style.paddingLeft = '1.25em';
+    headings.forEach((h, i) => {
+      const id = (h as HTMLElement).id || `h_${i}_${Date.now()}`; (h as HTMLElement).id = id;
+      const li = document.createElement('li'); const a = document.createElement('a'); a.textContent = (h as HTMLElement).innerText || h.tagName; a.href = `#${id}`; li.appendChild(a); ol.appendChild(li);
+    });
+    document.execCommand('insertHTML', false, `<div style="border:1px solid #e2e8f0;padding:8px;border-radius:6px"><div style="font-weight:600;margin-bottom:4px">Table of contents</div>${ol.outerHTML}</div>`);
+    this.onEditorInput();
+  }
+
+  // File helpers
+  private async trashDoc() { if (!this.doc) return; await this.docs.softDelete(this.doc.id); alert('Moved to trash'); this.router.navigate(['/']); }
+  private shareDoc() { alert('Sharing UI not implemented.'); }
+  private emailDoc(which: 'attach'|'collab') {
+    const subject = encodeURIComponent(this.doc?.title || 'Document');
+    const body = encodeURIComponent(which === 'attach' ? 'See attached document.' : 'Please review this document.');
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+  private showVersionHistory() { const d=this.doc; alert(`Created: ${d?.createdAt}\nUpdated: ${d?.updatedAt}`); }
+  private showDetails() { const d=this.doc; alert(`ID: ${d?.id}\nStatus: ${d?.status}\nCreated: ${d?.createdAt}\nUpdated: ${d?.updatedAt}`); }
+
+  // View helpers
+  mode: 'editing'|'suggesting'|'viewing' = 'editing';
+  @ViewChild('editorMainPane', { static: false }) editorMainPaneRef?: ElementRef<HTMLDivElement>;
+  private applyContentEditable() {
+    const editable = this.mode !== 'viewing';
+    for (const page of this.getPages()) page.setAttribute('contenteditable', editable ? 'true' : 'false');
+  }
+  setMode(m: 'editing'|'suggesting'|'viewing') { this.mode = m; this.applyContentEditable(); }
+  private printLayout = true;
+  togglePrintLayout() { this.printLayout = !this.printLayout; for (const p of this.getPages()) p.style.boxShadow = this.printLayout ? '' : 'none'; }
+  private outlineVisible = false; toggleOutline(){ this.outlineVisible = !this.outlineVisible; alert('Outline placeholder'); }
+  private sectionBreaksVisible = false; toggleSectionBreaks(){ this.sectionBreaksVisible = !this.sectionBreaksVisible; alert('Section breaks placeholder'); }
+  private nonPrintingVisible = false; toggleNonPrinting(){ this.nonPrintingVisible = !this.nonPrintingVisible; alert('Non-printing characters placeholder'); }
+  enterFullscreen(){ const el = this.editorMainPaneRef?.nativeElement || document.documentElement; if ((el as any).requestFullscreen) (el as any).requestFullscreen(); }
+
+  // Insert helpers
+  private insertPlaceholder(label: string) {
+    const html = `<div style=\"border:1px dashed #94a3b8; padding:8px; border-radius:6px; color:#334155; background:#f8fafc; font-size:12px; display:inline-block\">${label} placeholder</div>`;
+    document.execCommand('insertHTML', false, html); this.onEditorInput();
+  }
+
+  private insertImageByUrl() {
+    const url = prompt('Image URL'); if (!url) return; document.execCommand('insertImage', false, url); this.onEditorInput();
+  }
+  private openWebSearch() {
+    const sel = document.getSelection(); const q = encodeURIComponent(sel?.toString() || ''); window.open(`https://www.google.com/search?q=${q}&tbm=isch`, '_blank');
+  }
+  private insertChip(kind: 'people'|'file'|'calendar'|'date'|'dropdown') {
+    const map: any = { people: '👤', file: '📄', calendar: '📅', date: new Date().toLocaleDateString(), dropdown: '▾' };
+    const html = `<span contenteditable="false" style="display:inline-flex;align-items:center;gap:6px;padding:2px 6px;border-radius:9999px;border:1px solid #cbd5e1;background:#f8fafc;color:#334155;">${map[kind]||'•'} <span style="font-size:12px">${kind}</span></span>&nbsp;`;
+    document.execCommand('insertHTML', false, html); this.onEditorInput();
+  }
+  private insertTemplateSample() {
+    const sample = `<div><h1 style="margin:0 0 8px">Sample Report</h1><h3 style="margin:0 0 16px;color:#475569">Subtitle</h3><p>Intro paragraph with some <b>bold</b> and <i>italic</i> text.</p><h2>Section One</h2><p>Content...</p><h2>Section Two</h2><p>More content...</p></div>`;
+    if (this.pagesContainerRef) { this.pagesContainerRef.nativeElement.innerHTML = sample; this.onEditorInput(); this.renderCurrentDoc(); }
+  }
+  private moveDocPrompt(){ const label = prompt('Move to (label/folder)'); if (!label || !this.doc) return; try{ const raw = localStorage.getItem('doc_labels')||'{}'; const obj = JSON.parse(raw); obj[this.doc.id]=label; localStorage.setItem('doc_labels', JSON.stringify(obj)); alert('Labeled as: '+label);}catch{}}
+  private addShortcutPrompt(){ alert('Shortcut created (placeholder).'); }
+  private languagePrompt(){ alert('Language set (placeholder).'); }
+
+  private compareDocuments(){ alert('Comparison placeholder. Select text and use Tools → Compare documents for a future diff view.'); }
+  private exploreSelection(){ const sel = document.getSelection()?.toString()||''; const q = encodeURIComponent(sel||'document'); window.open(`https://www.google.com/search?q=${q}`,'_blank'); }
+  private lookupDictionary(){ const sel = document.getSelection()?.toString()||''; const q = encodeURIComponent(sel||''); if (q) window.open(`https://www.dictionary.com/browse/${q}`,'_blank'); else alert('Select a word first.'); }
+  private translateSelection(){ const sel = document.getSelection()?.toString()||''; const q = encodeURIComponent(sel||''); window.open(`https://translate.google.com/?sl=auto&tl=en&text=${q}&op=translate`,'_blank'); }
+  private togglePreference(){ const key='docs_pref_plain_paste'; const val = localStorage.getItem(key)==='true'? 'false':'true'; localStorage.setItem(key,val); alert(`Plain-text paste default: ${val==='true'?'ON':'OFF'}`); }
+
+  // Format helpers
+  private toggleColumns() {
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return; const range = sel.getRangeAt(0);
+    let el = (range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer as HTMLElement : range.startContainer.parentElement as HTMLElement) || null;
+    const block = el?.closest('.page > *') as HTMLElement | null; if (!block) return;
+    const current = block.style.columnCount; block.style.columnCount = current && current !== '1' ? '1' : '2'; block.style.columnGap = '16px'; this.onEditorInput();
+  }
+  private toggleBlockBorder() {
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return; const range = sel.getRangeAt(0);
+    let el = (range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer as HTMLElement : range.startContainer.parentElement as HTMLElement) || null;
+    const block = el?.closest('.page > *') as HTMLElement | null; if (!block) return;
+    block.style.border = block.style.border ? '' : '1px solid #cbd5e1'; block.style.padding = block.style.border ? '8px' : ''; this.onEditorInput();
+  }
+
+  private resetSelectedImage() {
+    const img = this.getSelectedImage(); if (!img) { alert('Select an image'); return; }
+    img.removeAttribute('style'); this.onEditorInput();
+  }
+  private setAltTextSelectedImage() {
+    const img = this.getSelectedImage(); if (!img) { alert('Select an image'); return; }
+    const alt = prompt('Alt text', img.alt || ''); if (alt !== null) { img.alt = alt; this.onEditorInput(); }
+  }
+  private getSelectedImage(): HTMLImageElement | null {
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return null;
+    let node: Node | null = sel.getRangeAt(0).startContainer;
+    return (node instanceof HTMLImageElement) ? node : (node && (node as any).parentElement?.closest('img'));
+  }
+
+  private deleteSelection() {
+    const sel = document.getSelection(); if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0); if (!sel.toString()) return;
+    range.deleteContents(); this.onEditorInput();
+  }
+
+  private downloadAs(fmt: 'pdf'|'txt'|'html'|'rtf'|'docx'|'odt'|'epub') {
+    // Minimal exports without external libs: txt, html. Others stub with instructions.
+    if (!this.doc) return;
+    const title = (this.doc.title || 'document').replace(/\s+/g, '-').slice(0,80);
+    const html = this.pagesContainerRef?.nativeElement?.innerHTML || '';
+    if (fmt === 'txt') {
+      const text = stripTags(html).trim();
+      const blob = new Blob([text], { type: 'text/plain' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${title}.txt`; a.click(); URL.revokeObjectURL(a.href); return;
+    }
+    if (fmt === 'html') {
+      const full = `<!doctype html><html><head><meta charset="utf-8"><title>${this.doc.title||'Document'}</title></head><body>${html}</body></html>`;
+      const blob = new Blob([full], { type: 'text/html' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${title}.html`; a.click(); URL.revokeObjectURL(a.href); return;
+    }
+    if (fmt === 'pdf') { alert('Use File → Print and select “Save as PDF”.'); return; }
+    if (fmt === 'rtf' || fmt === 'docx' || fmt === 'odt' || fmt === 'epub') { alert(`Export to ${fmt.toUpperCase()} not implemented. We can add a converter next.`); return; }
   }
 
   // Edit menu: next paste uses sanitized HTML
