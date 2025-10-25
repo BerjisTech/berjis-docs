@@ -25,11 +25,11 @@ type Document struct {
 
 func New(opts Options) *fiber.App {
     app := fiber.New()
-    // Reflect CORS origin for berjis.test domains with credentials
+    // Reflect CORS origin for berjis.tech domains with credentials
     app.Use(func(c *fiber.Ctx) error {
         origin := c.Get("Origin")
         if origin != "" {
-            if origin == "http://berjis.test" || strings.HasSuffix(origin, ".berjis.test") {
+            if origin == "http://berjis.tech" || strings.HasSuffix(origin, ".berjis.tech") {
                 c.Set("Access-Control-Allow-Origin", origin)
                 c.Set("Vary", "Origin")
                 c.Set("Access-Control-Allow-Credentials", "true")

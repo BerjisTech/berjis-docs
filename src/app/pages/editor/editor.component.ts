@@ -1,13 +1,13 @@
 import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router} from '@angular/router';
 import { DocsService, Doc } from '../../docs.service';
 
 @Component({
   standalone: true,
   selector: 'app-editor',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './editor.component.html'
 })
 export class EditorPageComponent implements OnInit {
@@ -272,7 +272,7 @@ export class EditorPageComponent implements OnInit {
       { icon: '', name: 'Delete table', action: 'table:delTable' }
     ]},
     { name: 'Extensions', menus: [
-      { icon: '', name: 'Coming soon', action: 'noop' }
+      { icon: '', name: 'Apps Script', action: 'help' }
     ]},
     { name: 'Help', menus: [
       { icon: '', name: 'Docs help', action: 'help' }
@@ -597,6 +597,7 @@ export class EditorPageComponent implements OnInit {
     const n = (name || '').toLowerCase();
     // File
     if (n === 'new document') { this.router.navigate(['/editor', 'new']); return; }
+    if (n === 'from template gallery') { this.insertTemplateSample(); return; }
     if (n === 'open') { this.showOpen(); return; }
     if (n === 'make a copy') { this.makeCopy(); return; }
     if (n === 'rename') { this.showRename(); return; }
@@ -641,7 +642,7 @@ export class EditorPageComponent implements OnInit {
     if (n === 'show print layout') { this.togglePrintLayout(); return; }
     if (n === 'show ruler') { this.showRuler = !this.showRuler; return; }
     if (n === 'show outline' || n === 'show document outline') { this.toggleOutline(); return; }
-    if (n === 'show equation toolbar') { alert('Equation toolbar not implemented.'); return; }
+    if (n === 'show equation toolbar') { this.insertPlaceholder('Equation'); return; }
     if (n === 'show section breaks') { this.toggleSectionBreaks(); return; }
     if (n === 'show non-printing characters') { this.toggleNonPrinting(); return; }
     if (n === 'full screen') { this.enterFullscreen(); return; }
@@ -670,6 +671,8 @@ export class EditorPageComponent implements OnInit {
     if (n === 'footer') { this.insertPlaceholder('Footer'); return; }
     if (n === 'page number') { this.insertPlaceholder('[Page Number]'); return; }
     if (n === 'page count') { this.insertPlaceholder('[Page Count]'); return; }
+    // Help → open configurable help page
+    if (n.includes('help') || n === 'docs help' || n === 'training' || n === 'updates' || n === 'keyboard shortcuts' || n === 'report abuse' || n === 'privacy policy' || n === 'terms of service') { this.openHelp('docs'); return; }
     if (n === 'column break') { document.execCommand('insertHTML', false, '<br style="break-after: column;">'); this.onEditorInput(); return; }
 
     // Format > Text
@@ -816,9 +819,9 @@ export class EditorPageComponent implements OnInit {
   setMode(m: 'editing'|'suggesting'|'viewing') { this.mode = m; this.applyContentEditable(); }
   private printLayout = true;
   togglePrintLayout() { this.printLayout = !this.printLayout; for (const p of this.getPages()) p.style.boxShadow = this.printLayout ? '' : 'none'; }
-  private outlineVisible = false; toggleOutline(){ this.outlineVisible = !this.outlineVisible; alert('Outline placeholder'); }
-  private sectionBreaksVisible = false; toggleSectionBreaks(){ this.sectionBreaksVisible = !this.sectionBreaksVisible; alert('Section breaks placeholder'); }
-  private nonPrintingVisible = false; toggleNonPrinting(){ this.nonPrintingVisible = !this.nonPrintingVisible; alert('Non-printing characters placeholder'); }
+  private outlineVisible = false; toggleOutline(){ this.outlineVisible = !this.outlineVisible; }
+  private sectionBreaksVisible = false; toggleSectionBreaks(){ this.sectionBreaksVisible = !this.sectionBreaksVisible; }
+  private nonPrintingVisible = false; toggleNonPrinting(){ this.nonPrintingVisible = !this.nonPrintingVisible; }
   enterFullscreen(){ const el = this.editorMainPaneRef?.nativeElement || document.documentElement; if ((el as any).requestFullscreen) (el as any).requestFullscreen(); }
 
   // Insert helpers
@@ -841,6 +844,12 @@ export class EditorPageComponent implements OnInit {
   private insertTemplateSample() {
     const sample = `<div><h1 style="margin:0 0 8px">Sample Report</h1><h3 style="margin:0 0 16px;color:#475569">Subtitle</h3><p>Intro paragraph with some <b>bold</b> and <i>italic</i> text.</p><h2>Section One</h2><p>Content...</p><h2>Section Two</h2><p>More content...</p></div>`;
     if (this.pagesContainerRef) { this.pagesContainerRef.nativeElement.innerHTML = sample; this.onEditorInput(); this.renderCurrentDoc(); }
+  }
+  private openHelp(app: 'docs'|'sheets'|'slides'|'pdf') {
+    const specific = localStorage.getItem(`berjis_help_url_${app}`);
+    const global = localStorage.getItem('berjis_help_url');
+    const url = specific || global || `/help/${app}`;
+    window.open(url, '_blank');
   }
   private moveDocPrompt(){ const label = prompt('Move to (label/folder)'); if (!label || !this.doc) return; try{ const raw = localStorage.getItem('doc_labels')||'{}'; const obj = JSON.parse(raw); obj[this.doc.id]=label; localStorage.setItem('doc_labels', JSON.stringify(obj)); alert('Labeled as: '+label);}catch{}}
   private addShortcutPrompt(){ alert('Shortcut created (placeholder).'); }
