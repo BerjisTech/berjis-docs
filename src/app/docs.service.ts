@@ -12,7 +12,7 @@ export interface Doc {
   updatedAt: string;
 }
 
-const API_BASE = 'http://docs-api.berjis.tech';
+const API_BASE = 'https://docs-api.berjis.tech';
 const STORAGE_KEY = 'berjis-docs';
 
 @Injectable({ providedIn: 'root' })
