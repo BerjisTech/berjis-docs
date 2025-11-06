@@ -27,6 +27,11 @@ export class EditorPageComponent implements OnInit {
   renameTitle = '';
   linkModal = false;
   linkUrl = '';
+  // Share modal
+  shareOpen = false;
+  shareRows: { userId: string; role: 'viewer'|'commenter'|'editor'; invitedBy?: string; createdAt?: string }[] = [];
+  shareUserId = '';
+  shareRole: 'viewer'|'commenter'|'editor' = 'viewer';
   // Find & Replace
   findModal = false; findQuery = ''; replaceQuery = ''; findCase = false; findWhole = false;
   // Format painter
@@ -800,7 +805,32 @@ export class EditorPageComponent implements OnInit {
 
   // File helpers
   private async trashDoc() { if (!this.doc) return; await this.docs.softDelete(this.doc.id); alert('Moved to trash'); this.router.navigate(['/']); }
-  private shareDoc() { alert('Sharing UI not implemented.'); }
+  private shareDoc() {
+    this.shareOpen = true;
+    this.loadCollaborators();
+  }
+  async loadCollaborators() {
+    if (!this.doc) return;
+    try {
+      const res = await fetch(`/v1/docs/${encodeURIComponent(this.doc.id)}/collaborators`, { credentials: 'include' });
+      const j = await res.json();
+      const rows = (j?.data || []) as any[];
+      this.shareRows = rows.map(r => ({ userId: r.userId || r.user_id, role: (r.role||'viewer') }));
+    } catch { this.shareRows = []; }
+  }
+  async addCollaborator() {
+    if (!this.doc) return;
+    const userId = this.shareUserId.trim(); if (!userId) return;
+    const role = this.shareRole;
+    await fetch(`/v1/docs/${encodeURIComponent(this.doc.id)}/collaborators`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, role }) });
+    this.shareUserId = '';
+    await this.loadCollaborators();
+  }
+  async removeCollaborator(uid: string) {
+    if (!this.doc) return;
+    await fetch(`/v1/docs/${encodeURIComponent(this.doc.id)}/collaborators?user_id=${encodeURIComponent(uid)}`, { method: 'DELETE', credentials: 'include' });
+    await this.loadCollaborators();
+  }
   private emailDoc(which: 'attach'|'collab') {
     const subject = encodeURIComponent(this.doc?.title || 'Document');
     const body = encodeURIComponent(which === 'attach' ? 'See attached document.' : 'Please review this document.');
