@@ -14,18 +14,89 @@
   .page { box-shadow: none !important; }
 }
 
-@theme {
+:root {
+  /* Raw palette tokens */
   --color-bg-light-start: #eff6ff; --color-bg-light-end: #f8fafc;
   --color-text-primary: #0f172a; --color-text-accent: #1e3a8a; --color-link: #60a5fa;
   --color-shadow-light: rgba(30,64,175,0.15);
   --color-bg-dark-start: #0f172a; --color-bg-dark-end: #1e3a8a; --color-text-dark: #f8fafc;
   --color-gold: #f5c542; --color-shadow-dark: rgba(2,6,23,0.6);
+
+  /* Active tokens used throughout the app (map to light by default) */
+  --bg-start: var(--color-bg-light-start);
+  --bg-end: var(--color-bg-light-end);
+  --text-primary: var(--color-text-primary);
+  --text-accent: var(--color-text-accent);
+  --link-color: var(--color-link);
+  --shadow: var(--color-shadow-light);
 }
 
-a { @apply text-blue-400 hover:text-blue-500 underline-offset-4 decoration-blue-300 hover:decoration-blue-500; }
+/* Dark theme mapping: place the `dark` class on a top-level element (html/body) */
+.dark {
+  --bg-start: var(--color-bg-dark-start);
+  --bg-end: var(--color-bg-dark-end);
+  --text-primary: var(--color-text-dark);
+  --text-accent: var(--color-text-accent);
+  --link-color: var(--color-link);
+  --shadow: var(--color-shadow-dark);
+}
+
+a { color: var(--link-color); text-decoration-skip-ink: auto; }
 @keyframes gradient-pan { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
-.bg-app-gradient { background-image: linear-gradient(135deg, var(--color-bg-light-start), var(--color-bg-light-end)); background-size:200% 200%; }
-.dark .bg-app-gradient { background-image: linear-gradient(135deg, var(--color-bg-dark-start), var(--color-bg-dark-end)); }
+.bg-app-gradient { background-image: linear-gradient(135deg, var(--bg-start), var(--bg-end)); background-size:200% 200%; }
 .bg-app-gradient-animated { animation: gradient-pan 14s ease-in-out infinite; }
-.shadow-brand { box-shadow: 0 18px 48px var(--color-shadow-light); }
-.dark .shadow-brand { box-shadow: 0 28px 72px var(--color-shadow-dark); }
+.shadow-brand { box-shadow: 0 18px 48px var(--shadow); }
+.dark .shadow-brand { box-shadow: 0 28px 72px var(--shadow); }
+
+/* Base body styles so text contrast is correct in either mode */
+body {
+  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+}
+
+/* Utility: ensure text elements inherit and links use token */
+h1,h2,h3,h4,h5,h6,p,li,span,input,button,label {
+  color: inherit;
+}
+
+/* Improve anchor appearance without relying solely on Tailwind utilities */
+a { color: var(--link-color); }
+a:hover { opacity: 0.9; }
+
+/* Fallback mappings for common Tailwind utilities so components adapt to dark mode
+   These rules use CSS variables above and are placed after Tailwind so they override
+   utility classes when the app toggles `.dark` on a top-level element. */
+:root {
+  --panel-bg: #ffffff;
+  --toolbar-bg: #f1f5f9; /* used for toolbars, small surfaces */
+  --muted-bg: #f8fafc; /* subtle surfaces */
+  --border-light: #e6eef8;
+  --muted-text: #6b7280; /* gray-500 */
+}
+.dark {
+  --panel-bg: #071220;
+  --toolbar-bg: #0f172a;
+  --muted-bg: rgba(255,255,255,0.02);
+  --border-light: rgba(255,255,255,0.06);
+  --muted-text: rgba(248,250,252,0.7);
+}
+
+/* Background utilities */
+.bg-white { background-color: var(--panel-bg) !important; }
+.bg-slate-50 { background-color: var(--muted-bg) !important; }
+.bg-slate-100 { background-color: var(--toolbar-bg) !important; }
+.bg-blue-100 { background-color: rgba(59,130,246,0.06) !important; }
+
+/* Border utilities */
+.border-slate-200 { border-color: var(--border-light) !important; }
+.border-slate-300 { border-color: var(--border-light) !important; }
+
+/* Muted text */
+.text-gray-500, .text-slate-500 { color: var(--muted-text) !important; }
+
+/* Shadows: make subtle in dark */
+.shadow { box-shadow: 0 6px 18px rgba(2,6,23,0.4) !important; }
+.shadow-sm { box-shadow: 0 1px 2px rgba(2,6,23,0.2) !important; }
+
+/* Ensure panels and modals use the panel background and readable text */
+.modal, .panel, .card { background-color: var(--panel-bg); color: var(--text-primary); }

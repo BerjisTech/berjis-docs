@@ -1,9 +1,9 @@
-<div class="w-full h-[145px] overflow-visible ps-[30px] p-3 relative z-20">
+<div class="w-full h-[145px] overflow-visible ps-[30px] p-3 relative z-20 text-slate-900 dark:text-slate-200">
   <div class="h-[70px] flex items-center justify-start gap-3">
     <a href="/" class="h-full w-[70px] bg-blue-400 rounded flex items-center justify-center">Icon</a>
-    <div class="flex-grow">
-      <div class="flex items-center-safe justify-start gap-2">
-        <input class="text-2xl font-semibold outline-none bg-transparent py-1" placeholder="Untitled document"
+    <div class="grow">
+      <div class="flex items-center-safe justify-start gap-2 text-slate-800 dark:text-slate-200">
+        <input class="text-2xl text-slate-800 dark:text-slate-200 font-semibold outline-none bg-transparent py-1" placeholder="Untitled document"
           [(ngModel)]="doc!.title" (ngModelChange)="onTitleChange()" />
 
         <div class="flex items-center gap-2 text-xs">
@@ -21,11 +21,11 @@
       <div class="flex items-center justify-start gap-1">
         <ng-container *ngIf="docsToolBar && docsToolBar[0]">
           <ng-template #submenu let-items>
-            <div class="bg-white border border-slate-200 rounded shadow-lg min-w-[220px] py-1">
+            <div class="bg-white border border-slate-200 rounded shadow-lg min-w-[220px] py-1 text-slate-800 dark:text-slate-200">
               <div *ngFor="let child of items" class="px-3 py-1 hover:bg-slate-100 relative group" (click)="!child.children && onDocsMenuClick(child.name); $event.stopPropagation()">
                 <span>{{ child.name }}</span>
                 <span *ngIf="child.children" class="absolute right-2">▶</span>
-                <div *ngIf="child.children" class="hidden group-hover:block absolute top-0 left-full z-[60000]">
+                <div *ngIf="child.children" class="hidden group-hover:block absolute top-0 left-full z-60000">
                   <ng-container *ngTemplateOutlet="submenu; context: {$implicit: child.children}"></ng-container>
                 </div>
               </div>
@@ -36,7 +36,7 @@
                class="px-3 py-1 rounded hover:bg-slate-200 cursor-pointer relative"
                (mouseenter)="openMenuIndex = i" (mouseleave)="openMenuIndex = null">
             {{ m.name }}
-            <div *ngIf="m.children && openMenuIndex===i" class="absolute top-full left-0 z-[60000]">
+            <div *ngIf="m.children && openMenuIndex===i" class="absolute top-full left-0 z-60000">
               <ng-container *ngTemplateOutlet="submenu; context: {$implicit: m.children}"></ng-container>
             </div>
           </div>
@@ -52,7 +52,7 @@
     </div>
   </div>
 
-  <div class="flex items-center gap-1.5 p-2 rounded-md bg-slate-100 sticky mt-3 top-0 z-10 shadow-sm overflow-x-auto overflow-y-visible whitespace-nowrap text-sm relative">
+  <div class="flex items-center gap-1.5 p-2 rounded-md bg-slate-100 sticky mt-3 top-0 z-10 shadow-sm overflow-x-auto overflow-y-visible whitespace-nowrap text-sm">
     <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Undo" (click)="exec('undo')">↶</button>
     <button class="px-2 py-1 rounded-md bg-white shadow-sm hover:bg-slate-50" title="Redo" (click)="exec('redo')">↷</button>
     <span class="mx-2 h-5 w-px bg-slate-300 inline-block"></span>
@@ -139,7 +139,7 @@
   </div>
 
   <!-- Share modal -->
-  <div *ngIf="shareOpen" class="fixed inset-0 z-[70000] flex items-center justify-center bg-black/30">
+  <div *ngIf="shareOpen" class="fixed inset-0 z-70000 flex items-center justify-center bg-black/30">
     <div class="w-[520px] max-w-[95vw] rounded-xl bg-white p-4 shadow-xl">
       <div class="flex items-center justify-between">
         <h3 class="text-base font-semibold">Share</h3>
@@ -155,7 +155,7 @@
           </select>
           <button class="rounded bg-blue-700 px-3 py-1 text-sm font-medium text-white" (click)="addCollaborator()">Add</button>
         </div>
-        <div class="max-h-[240px] overflow-y-auto rounded border">
+        <div class="max-h-60 overflow-y-auto rounded border">
           <div *ngFor="let r of shareRows" class="flex items-center justify-between border-b px-3 py-2 text-sm">
             <div>
               <div class="font-medium">{{ r.userId }}</div>
@@ -171,7 +171,7 @@
 
 </div>
 
-<div #editorMainPane class="h-[calc(100vh-155px)] mt-2 overflow-hidden z-[1]">
+<div #editorMainPane class="h-[calc(100vh-155px)] mt-2 overflow-hidden z-1">
   <div *ngIf="showRuler" #horizontalScale class="h-[30px] ms-[30px] border-b border-slate-400 flex items-center justify-center">
     <div #hRuler class="relative" [style.width]="pageWidthMm + 'mm'" [style.height]="'30px'">
       <div class="absolute left-0 top-0 right-0 h-full flex">
@@ -227,7 +227,7 @@
 </div>
 
 <!-- Open Modal -->
-<div *ngIf="openModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+<div *ngIf="openModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-60000">
   <div class="bg-white rounded shadow w-[900px] max-w-[90vw] p-5">
     <div class="flex items-center justify-between mb-3">
       <div class="text-lg font-semibold">Open Document</div>
@@ -239,7 +239,7 @@
       <a (click)="openDoc(d)" *ngFor="let d of openFiltered" class="shadow rounded bg-slate-50 flex flex-col p-2 cursor-pointer hover:shadow-xl">
         <div class="font-medium truncate">{{ d.title || 'Untitled' }}</div>
         <div class="text-xs text-gray-500 mt-1">{{ d.updatedAt | date:'medium' }}</div>
-        <div class="flex-grow"></div>
+        <div class="grow"></div>
         <div class="text-blue-600 text-sm">Open</div>
       </a>
     </div>
@@ -247,7 +247,7 @@
 </div>
 
 <!-- Insert Link Modal -->
-<div *ngIf="linkModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+<div *ngIf="linkModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-60000">
   <div class="bg-white rounded shadow w-[520px] p-4">
     <div class="text-lg font-semibold mb-2">Insert Link</div>
     <label class="text-sm text-gray-600">URL</label>
@@ -260,7 +260,7 @@
 </div>
 
 <!-- Rename Modal -->
-<div *ngIf="renameModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+<div *ngIf="renameModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-60000">
   <div class="bg-white rounded shadow w-[520px] p-4">
     <div class="text-lg font-semibold mb-2">Rename Document</div>
     <label class="text-sm text-gray-600">Title</label>
@@ -273,7 +273,7 @@
 </div>
 
 <!-- Find & Replace Modal -->
-<div *ngIf="findModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+<div *ngIf="findModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-60000">
   <div class="bg-white rounded shadow w-[520px] p-4">
     <div class="text-lg font-semibold mb-2">Find and Replace</div>
     <label class="text-sm text-gray-600">Find</label>
@@ -295,7 +295,7 @@
 </div>
 
 <!-- Page Setup Modal -->
-<div *ngIf="pageSetupModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+<div *ngIf="pageSetupModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-60000">
   <div class="bg-white rounded shadow w-[520px] p-4">
     <div class="text-lg font-semibold mb-2">Page Setup</div>
     <div class="grid grid-cols-2 gap-4">
@@ -339,7 +339,7 @@
 </div>
 
 <!-- Image Options Modal -->
-<div *ngIf="imageOptionsModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-[60000]">
+<div *ngIf="imageOptionsModal" class="fixed inset-0 bg-black/30 flex items-center justify-center z-60000">
   <div class="bg-white rounded shadow w-[420px] p-4">
     <div class="text-lg font-semibold mb-2">Image Options</div>
     <div class="grid grid-cols-2 gap-4">
