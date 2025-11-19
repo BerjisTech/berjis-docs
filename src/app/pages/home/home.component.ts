@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CoreAuthService } from '@berjis/angular-auth';
@@ -18,7 +18,10 @@ export class HomePageComponent {
   authed: boolean | null = null;
   recents: Doc[] = [];
   trash: Doc[] = [];
-  constructor(private auth: CoreAuthService, private docs: DocsService) { this.init(); }
+  private readonly auth = inject(CoreAuthService);
+  private readonly docs = inject(DocsService);
+
+  constructor() { this.init(); }
   async init() {
     try {
       const session = await this.auth.ensureAuth({ maxAgeMs: 1500 });

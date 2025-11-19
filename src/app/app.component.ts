@@ -19,6 +19,10 @@ export class AppComponent implements OnInit {
   private setTheme(mode: 'light' | 'dark') {
     this.isDark = mode === 'dark';
     document.documentElement.classList.toggle('dark', mode === 'dark');
-    try { localStorage.setItem('theme', mode); } catch {}
+    try {
+      localStorage.setItem('theme', mode);
+    } catch (error) {
+      console.warn('Unable to persist theme preference', error);
+    }
   }
 }

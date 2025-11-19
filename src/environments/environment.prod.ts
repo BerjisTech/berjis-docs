@@ -1,4 +1,9 @@
-const w = typeof window !== 'undefined' ? (window as any) : {};
+type DocsWindow = Window & {
+  __BERJIS_API__?: string;
+  __DOCS_API__?: string;
+};
+
+const w: DocsWindow | undefined = typeof window !== 'undefined' ? (window as DocsWindow) : undefined;
 
 export const environment = {
   production: true,
