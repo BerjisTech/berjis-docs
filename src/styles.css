@@ -19,7 +19,7 @@
   --color-bg-light-start: #eff6ff; --color-bg-light-end: #f8fafc;
   --color-text-primary: #0f172a; --color-text-accent: #1e3a8a; --color-link: #60a5fa;
   --color-shadow-light: rgba(30,64,175,0.15);
-  --color-bg-dark-start: #0f172a; --color-bg-dark-end: #1e3a8a; --color-text-dark: #f8fafc;
+  --color-bg-dark-start: #0f172a; --color-bg-dark-end: #1e3a8a; --color-text-dark: #eff6ff;
   --color-gold: #f5c542; --color-shadow-dark: rgba(2,6,23,0.6);
 
   /* Active tokens used throughout the app (map to light by default) */
@@ -98,6 +98,14 @@ a:hover { opacity: 0.9; }
    the active text color token. In light mode this makes `text-slate-200` dark,
    while in dark mode `--text-primary` is a light color so the class remains light. */
 .text-slate-50, .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400 {
+  color: var(--text-primary) !important;
+}
+
+.dark .dark\:text-slate-50,
+.dark .dark\:text-slate-100,
+.dark .dark\:text-slate-200,
+.dark .dark\:text-slate-300,
+.dark .dark\:text-slate-400 {
   color: var(--text-primary) !important;
 }
 
