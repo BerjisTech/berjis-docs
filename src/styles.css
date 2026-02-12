@@ -4,7 +4,6 @@
 
 
 
-
 @media print {
   @page {
     size: A4;
@@ -15,14 +14,29 @@
 }
 
 :root {
-  /* Raw palette tokens */
-  --color-bg-light-start: #eff6ff; --color-bg-light-end: #f8fafc;
-  --color-text-primary: #0f172a; --color-text-accent: #1e3a8a; --color-link: #60a5fa;
-  --color-shadow-light: rgba(30,64,175,0.15);
-  --color-bg-dark-start: #0f172a; --color-bg-dark-end: #1e3a8a; --color-text-dark: #eff6ff;
-  --color-gold: #f5c542; --color-shadow-dark: rgba(2,6,23,0.6);
+  /* ── Light mode: white + neon blue ── */
+  --color-bg-light-start: #ffffff;
+  --color-bg-light-end: #f0f9ff;
+  --color-text-primary: #0f172a;
+  --color-text-accent: #00bcd4;
+  --color-link: #00d4ff;
+  --color-shadow-light: rgba(0, 212, 255, 0.12);
 
-  /* Active tokens used throughout the app (map to light by default) */
+  /* ── Dark mode: black + gold ── */
+  --color-bg-dark-start: #000000;
+  --color-bg-dark-end: #0a0a0a;
+  --color-text-dark: #f8fafc;
+  --color-gold: #f5c542;
+  --color-shadow-dark: rgba(0, 0, 0, 0.6);
+
+  /* ── Accent tokens (swap between neon-blue and gold) ── */
+  --accent: #00d4ff;
+  --accent-hover: #00bcd4;
+  --accent-text: #0891b2;
+  --accent-bg: rgba(0, 212, 255, 0.06);
+  --accent-border: rgba(0, 212, 255, 0.25);
+
+  /* Active tokens (map to light by default) */
   --bg-start: var(--color-bg-light-start);
   --bg-end: var(--color-bg-light-end);
   --text-primary: var(--color-text-primary);
@@ -31,14 +45,20 @@
   --shadow: var(--color-shadow-light);
 }
 
-/* Dark theme mapping: place the `dark` class on a top-level element (html/body) */
+/* Dark theme mapping */
 .dark {
   --bg-start: var(--color-bg-dark-start);
   --bg-end: var(--color-bg-dark-end);
   --text-primary: var(--color-text-dark);
-  --text-accent: var(--color-text-accent);
-  --link-color: var(--color-link);
+  --text-accent: var(--color-gold);
+  --link-color: var(--color-gold);
   --shadow: var(--color-shadow-dark);
+
+  --accent: #f5c542;
+  --accent-hover: #fbbf24;
+  --accent-text: #f5c542;
+  --accent-bg: rgba(245, 197, 66, 0.06);
+  --accent-border: rgba(245, 197, 66, 0.25);
 }
 
 a { color: var(--link-color); text-decoration-skip-ink: auto; }
@@ -48,55 +68,67 @@ a { color: var(--link-color); text-decoration-skip-ink: auto; }
 .shadow-brand { box-shadow: 0 18px 48px var(--shadow); }
 .dark .shadow-brand { box-shadow: 0 28px 72px var(--shadow); }
 
-/* Base body styles so text contrast is correct in either mode */
+/* Base body styles */
 body {
   color: var(--text-primary);
   background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
 }
 
-/* Utility: ensure text elements inherit and links use token */
+/* Utility: ensure text elements inherit */
 h1,h2,h3,h4,h5,h6,p,li,span,input,button,label {
   color: inherit;
 }
 
-/* Improve anchor appearance without relying solely on Tailwind utilities */
+/* Anchor styles */
 a { color: var(--link-color); }
 a:hover { opacity: 0.9; }
 
-/* Fallback mappings for common Tailwind utilities so components adapt to dark mode
-   These rules use CSS variables above and are placed after Tailwind so they override
-   utility classes when the app toggles `.dark` on a top-level element. */
+/* ── Surface tokens ── */
 :root {
   --panel-bg: #ffffff;
-  --toolbar-bg: #f1f5f9; /* used for toolbars, small surfaces */
-  --muted-bg: #f8fafc; /* subtle surfaces */
-  --border-light: #e6eef8;
-  --muted-text: #6b7280; /* gray-500 */
+  --toolbar-bg: #f0f9ff;
+  --muted-bg: #f8fafc;
+  --border-light: #e0f2fe;
+  --muted-text: #6b7280;
 }
 .dark {
-  --panel-bg: #071220;
-  --toolbar-bg: #0f172a;
+  --panel-bg: #0a0a0a;
+  --toolbar-bg: #111111;
   --muted-bg: rgba(255,255,255,0.02);
-  --border-light: rgba(255,255,255,0.06);
-  --muted-text: rgba(248,250,252,0.7);
+  --border-light: rgba(245, 197, 66, 0.08);
+  --muted-text: rgba(248,250,252,0.6);
 }
 
-/* Background utilities */
+/* ── Tailwind utility overrides for theme-awareness ── */
+
+/* Backgrounds */
 .bg-white { background-color: var(--panel-bg) !important; }
 .bg-slate-50 { background-color: var(--muted-bg) !important; }
 .bg-slate-100 { background-color: var(--toolbar-bg) !important; }
-.bg-blue-100 { background-color: rgba(59,130,246,0.06) !important; }
+.bg-blue-100 { background-color: var(--accent-bg) !important; }
 
-/* Border utilities */
+/* Accent backgrounds */
+.bg-blue-400 { background-color: var(--accent) !important; }
+.bg-blue-600 { background-color: var(--accent) !important; }
+.bg-blue-700 { background-color: var(--accent-hover) !important; }
+
+/* Accent text */
+.text-blue-600 { color: var(--accent-text) !important; }
+.text-blue-900 { color: var(--accent-text) !important; }
+.dark .dark\:text-blue-300 { color: var(--accent-text) !important; }
+.dark .dark\:text-blue-50 { color: var(--text-primary) !important; }
+
+/* Borders */
 .border-slate-200 { border-color: var(--border-light) !important; }
 .border-slate-300 { border-color: var(--border-light) !important; }
+.hover\:border-blue-200:hover { border-color: var(--accent-border) !important; }
+.dark .dark\:hover\:border-blue-400\/40:hover { border-color: var(--accent-border) !important; }
 
 /* Muted text */
 .text-gray-500, .text-slate-500 { color: var(--muted-text) !important; }
+.text-gray-600 { color: var(--muted-text) !important; }
 
-/* Ensure very-light Tailwind text utilities (often used incorrectly) render with
-   the active text color token. In light mode this makes `text-slate-200` dark,
-   while in dark mode `--text-primary` is a light color so the class remains light. */
+/* Ensure slate text utilities adapt to theme */
 .text-slate-50, .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400 {
   color: var(--text-primary) !important;
 }
@@ -109,9 +141,41 @@ a:hover { opacity: 0.9; }
   color: var(--text-primary) !important;
 }
 
-/* Shadows: make subtle in dark */
-.shadow { box-shadow: 0 6px 18px rgba(2,6,23,0.4) !important; }
-.shadow-sm { box-shadow: 0 1px 2px rgba(2,6,23,0.2) !important; }
+/* Shadows */
+.shadow { box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important; }
+.dark .shadow { box-shadow: 0 6px 18px rgba(0,0,0,0.5) !important; }
+.shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important; }
+.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.3) !important; }
 
-/* Ensure panels and modals use the panel background and readable text */
+/* Panels and modals */
 .modal, .panel, .card { background-color: var(--panel-bg); color: var(--text-primary); }
+
+/* Document page canvas: always white paper regardless of theme */
+.page { background-color: #ffffff !important; color: #0f172a !important; }
+
+/* Dark mode surface overrides for template classes */
+.dark .bg-white\/80 { background-color: rgba(10,10,10,0.8) !important; }
+.dark .bg-white\/90 { background-color: rgba(10,10,10,0.9) !important; }
+.dark .bg-white\/95 { background-color: rgba(10,10,10,0.95) !important; }
+.dark .bg-slate-900\/40 { background-color: rgba(10,10,10,0.4) !important; }
+.dark .bg-slate-900\/60 { background-color: rgba(10,10,10,0.6) !important; }
+.dark .bg-slate-900\/70 { background-color: rgba(10,10,10,0.7) !important; }
+.dark .dark\:bg-slate-800\/80 { background-color: rgba(17,17,17,0.8) !important; }
+.dark .dark\:bg-slate-900\/40 { background-color: rgba(10,10,10,0.4) !important; }
+.dark .dark\:bg-slate-900\/60 { background-color: rgba(10,10,10,0.6) !important; }
+.dark .dark\:bg-slate-900\/70 { background-color: rgba(10,10,10,0.7) !important; }
+
+/* Dark borders */
+.dark .dark\:border-slate-700 { border-color: var(--border-light) !important; }
+.dark .dark\:border-slate-800\/70 { border-color: var(--border-light) !important; }
+.dark .dark\:border-slate-600 { border-color: var(--border-light) !important; }
+
+/* Hover states */
+.hover\:bg-slate-50:hover { background-color: var(--muted-bg) !important; }
+.hover\:bg-slate-100:hover { background-color: var(--toolbar-bg) !important; }
+.hover\:bg-slate-200:hover { background-color: var(--toolbar-bg) !important; }
+.hover\:bg-blue-500:hover { background-color: var(--accent-hover) !important; }
+.dark .dark\:hover\:border-blue-400\/40:hover { border-color: var(--accent-border) !important; }
+
+/* Gold accent for dark mode theme toggle */
+.dark .dark\:text-\[color\:var\(--color-gold\)\] { color: var(--color-gold) !important; }
